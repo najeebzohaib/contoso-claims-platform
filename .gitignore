@@ -80,3 +80,7 @@ azureauth.json
 # Plan files - any file ending in .tfplan or named tfplan
 tfplan
 *.tfplan
+
+# Backend configuration files (contain environment-specific resource names)
+backend.config
+*.backend.config
