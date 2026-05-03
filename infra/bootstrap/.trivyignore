@@ -1,0 +1,13 @@
+# ============================================================
+# Trivy ignored findings
+# ============================================================
+# Findings accepted with documented architectural justifications.
+# See: docs/architecture/adr/001-bootstrap-trade-offs.md
+# ============================================================
+
+# Bootstrap state-backend storage account
+# (chicken-and-egg: storage backend cannot use VNet/KV/LAW
+#  that haven't been deployed yet)
+AZU-0012
+AZU-0057
+AZU-0060

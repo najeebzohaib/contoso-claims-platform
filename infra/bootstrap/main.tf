@@ -73,7 +73,10 @@ resource "azurerm_resource_group" "tfstate" {
 # ------------------------------------------------------------
 # Storage Account for Terraform state
 # ------------------------------------------------------------
-
+# NOTE: Trivy findings AZU-0012, AZU-0057, AZU-0060 are accepted
+# for this bootstrap resource. See:
+#   - .trivyignore at project root
+#   - docs/architecture/adr/001-bootstrap-trade-offs.md
 resource "azurerm_storage_account" "tfstate" {
   name                = local.sa_name
   resource_group_name = azurerm_resource_group.tfstate.name
@@ -104,6 +107,11 @@ resource "azurerm_storage_account" "tfstate" {
 
   # Disable cross-tenant replication for security
   cross_tenant_replication_enabled = false
+
+  # Enable double encryption (service + infrastructure layer)
+  # Free, no operational impact, addresses Trivy AZU-0061
+  infrastructure_encryption_enabled = true
+
 
   # ----- Blob-level features -----
 

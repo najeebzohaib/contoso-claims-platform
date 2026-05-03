@@ -1,0 +1,29 @@
+# ============================================================
+# Gitleaks configuration
+# ============================================================
+# Extends the default rules with project-specific allowlists
+# Default rules: https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml
+# ============================================================
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowed paths and patterns"
+
+# These files are templates with placeholder values — never real secrets
+paths = [
+  '''.*\.example\..*''',
+  '''.*\.example$''',
+  '''.*example\..*''',
+]
+
+# Allow obvious placeholder values
+regexes = [
+  '''YOUR_[A-Z_]+''',
+  '''<[a-z-]+>''',
+  '''xxxxxxxx''',
+  '''CHANGE_ME''',
+  '''placeholder''',
+  '''example\.com''',
+]
