@@ -23,5 +23,10 @@ variable "github_repo" {
 variable "log_analytics_retention_days" {
   description = "Retention period for Log Analytics. Cost grows with this."
   type        = number
-  default     = 30 # Dev environment: minimum allowed is 30
+  default     = 30
+}
+
+variable "name_suffix" {
+  description = "Random suffix for globally-unique resources (e.g. Key Vault). Reuse the bootstrap suffix for visual consistency."
+  type        = string
 }

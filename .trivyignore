@@ -1,0 +1,15 @@
+# ============================================================
+# Trivy ignored findings (project root)
+# ============================================================
+# Findings accepted with documented architectural justifications.
+# See: docs/architecture/adr/
+#
+# Bootstrap-specific findings live in infra/bootstrap/.trivyignore
+# ============================================================
+
+# AZU-0016: Key Vault purge protection
+# Disabled in dev for fast iteration. Production environments enable it
+# via tfvars override (purge_protection_enabled = true), which makes
+# this finding disappear naturally for those environments. Defense in
+# depth: Azure Policy at management-group level will enforce in Week 5.
+AZU-0016

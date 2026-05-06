@@ -1,0 +1,3 @@
+# Module-level ignore. The default value of purge_protection_enabled is
+# false (appropriate for dev); production environments override to true.
+AZU-0016

@@ -37,3 +37,26 @@ output "tags" {
   description = "Common tags applied to all resources in this environment"
   value       = module.core.tags
 }
+
+output "key_vault" {
+  description = "Dev Key Vault details"
+  value = {
+    id   = module.kv_dev.id
+    name = module.kv_dev.name
+    uri  = module.kv_dev.uri
+  }
+}
+
+output "claims_api_identity" {
+  description = "UAMI for the claims API"
+  value = {
+    id           = module.id_claims_api.id
+    principal_id = module.id_claims_api.principal_id
+    client_id    = module.id_claims_api.client_id
+  }
+}
+
+output "kv_private_endpoint_ip" {
+  description = "Private IP of the Key Vault private endpoint"
+  value       = module.pe_kv_dev.private_ip_address
+}
