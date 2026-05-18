@@ -1,0 +1,72 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: dev-apply
+    strategy:
+      matrix:
+        environment: [dev]
+    defaults:
+      run:
+        working-directory: infra/environments/${{ matrix.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_CD }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform init
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID_CD }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RG }}" \
+            -backend-config="storage_account_name=${{ secrets.TF_BACKEND_SA }}" \
+            -backend-config="container_name=${{ secrets.TF_BACKEND_CONTAINER }}" \
+            -backend-config="key=${{ matrix.environment }}.terraform.tfstate" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Generate tfvars
+        run: |
+          cat > terraform.tfvars <<TFVARS
+          location         = "uksouth"
+          owner_email      = "amina.zaheer@urgentcover.co.uk"
+          maintainer_email = "zohaib.najeeb@gmail.com"
+          github_repo      = "najeebzohaib/contoso-claims-platform"
+          name_suffix      = "0bd2"
+          log_analytics_retention_days = 30
+          TFVARS
+
+      - name: Terraform apply
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID_CD }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+        run: terraform apply -auto-approve

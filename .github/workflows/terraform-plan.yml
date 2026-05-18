@@ -1,0 +1,113 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    paths:
+      - 'infra/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [dev]
+    defaults:
+      run:
+        working-directory: infra/environments/${{ matrix.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID_CI }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform init
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID_CI }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ secrets.TF_BACKEND_RG }}" \
+            -backend-config="storage_account_name=${{ secrets.TF_BACKEND_SA }}" \
+            -backend-config="container_name=${{ secrets.TF_BACKEND_CONTAINER }}" \
+            -backend-config="key=${{ matrix.environment }}.terraform.tfstate" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Generate tfvars
+        run: |
+          cat > terraform.tfvars <<TFVARS
+          location         = "uksouth"
+          owner_email      = "amina.zaheer@urgentcover.co.uk"
+          maintainer_email = "zohaib.najeeb@gmail.com"
+          github_repo      = "najeebzohaib/contoso-claims-platform"
+          name_suffix      = "0bd2"
+          log_analytics_retention_days = 30
+          TFVARS
+
+      - name: Terraform plan
+        id: plan
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID:       ${{ secrets.AZURE_CLIENT_ID_CI }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          ARM_TENANT_ID:       ${{ secrets.AZURE_TENANT_ID }}
+        run: |
+          set +e
+          terraform plan -no-color -out=tfplan 2>&1 | tee plan.txt
+          echo "exitcode=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          {
+            echo 'PLAN<<EOF_OUTPUT'
+            head -c 60000 plan.txt
+            echo
+            echo 'EOF_OUTPUT'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post plan to PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const plan = `${{ steps.plan.outputs.PLAN }}`;
+            const exitcode = `${{ steps.plan.outputs.exitcode }}`;
+            const status = exitcode === "0" ? "✅ Plan succeeded" : "❌ Plan failed";
+
+            const body = `### 📋 Terraform Plan — \`${{ matrix.environment }}\`
+
+            ${status}
+
+            <details><summary>Plan output</summary>
+
+            \`\`\`hcl
+            ${plan}
+            \`\`\`
+
+            </details>
+
+            *Merge to main triggers apply (requires reviewer approval).*`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: Fail if plan failed
+        if: steps.plan.outputs.exitcode != '0'
+        run: exit 1

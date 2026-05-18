@@ -1,25 +1,10 @@
-# ============================================================
-# backend.tf
-# ============================================================
-# State backend configuration. The actual values are passed
-# at init time via -backend-config flags so we don't hardcode
-# subscription/resource group names in version control.
+# State backend configuration.
+# Values passed at init time via -backend-config flags so we don't
+# hardcode subscription/resource group names in source control.
 #
-# This is called "partial configuration" and it's the standard
-# pattern in enterprise Terraform.
-# ============================================================
-
+# Both shared-key and Entra ID auth are accepted:
+#   Local dev: uses shared key (default, since az login provides it)
+#   CI/CD:     uses OIDC + Entra ID (via -backend-config="use_azuread_auth=true")
 terraform {
-  backend "azurerm" {
-    # All values passed at init time:
-    #   terraform init \
-    #     -backend-config="resource_group_name=<rg>" \
-    #     -backend-config="storage_account_name=<sa>" \
-    #     -backend-config="container_name=<container>" \
-    #     -backend-config="key=dev.terraform.tfstate"
-    #
-    # Or via a backend config file:
-    #   terraform init -backend-config=backend.config
-    use_azuread_auth = false
-  }
+  backend "azurerm" {}
 }
