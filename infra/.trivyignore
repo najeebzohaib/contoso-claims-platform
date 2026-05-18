@@ -1,0 +1,32 @@
+# ============================================================
+# Trivy ignored findings (scan-root: infra/)
+# ============================================================
+# Findings here are accepted with documented architectural
+# justifications. See docs/architecture/adr/.
+# ============================================================
+
+# AZU-0012: Storage account public network access
+# Accepted on bootstrap state storage. Required for laptop-driven
+# Terraform runs prior to VNet establishment. Mitigations include
+# TLS 1.2 minimum, no anonymous access, soft delete, versioning.
+# See ADR-001 for full reasoning.
+AZU-0012
+
+# AZU-0016: Key Vault purge protection
+# Disabled in dev for fast iteration (allows immediate vault
+# recreation without 7-day soft-delete window). Production
+# environments enable via purge_protection_enabled = true,
+# making this finding disappear naturally for them.
+AZU-0016
+
+# AZU-0057: Storage Analytics logging
+# Accepted on bootstrap state storage. Diagnostic settings
+# require Log Analytics which itself depends on this backend.
+# Retrofitted in Week 5. See ADR-001.
+AZU-0057
+
+# AZU-0060: Customer-managed keys for storage
+# Bootstrap state uses Microsoft-managed keys; consumer
+# resources requiring stricter controls will use CMK from
+# Key Vault. See ADR-001.
+AZU-0060
