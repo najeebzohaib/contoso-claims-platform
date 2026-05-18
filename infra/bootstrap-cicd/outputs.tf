@@ -18,7 +18,7 @@ output "cd_client_id" {
 
 output "github_secrets_summary" {
   description = "Values to set as GitHub Actions secrets"
-  value = <<-EOT
+  value       = <<-EOT
 
     Set these in https://github.com/${var.github_org}/${var.github_repo}/settings/secrets/actions
 

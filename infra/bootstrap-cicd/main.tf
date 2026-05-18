@@ -50,10 +50,13 @@ resource "azurerm_role_assignment" "ci_reader" {
   description          = "Plan-only access for PR workflow"
 }
 
-# RBAC: read state file in bootstrap storage
-resource "azurerm_role_assignment" "ci_state_reader" {
+# RBAC: state access for the CI SP
+# Plan requires write because state locking is a blob lease (write op).
+# Despite this, the SP cannot modify Azure resources — only subscription
+# Reader role applies there. Defense in depth via scope, not just role.
+resource "azurerm_role_assignment" "ci_state_writer" {
   scope                = var.tfstate_storage_account_id
-  role_definition_name = "Storage Blob Data Reader"
+  role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azuread_service_principal.ci.object_id
 }
 
