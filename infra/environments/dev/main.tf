@@ -271,3 +271,5 @@ resource "azurerm_role_assignment" "current_user_kv_admin" {
 
   description = "Standing admin access for Amina (acceptable in dev; PIM in prod)"
 }
+
+# Testing CI/CD pipeline end-to-end
