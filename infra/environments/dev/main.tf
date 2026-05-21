@@ -71,19 +71,14 @@ module "vnet_hub" {
   address_space       = ["10.0.0.0/16"]
 
   subnets = {
-    # Reserved for future Azure Firewall (40 IPs minimum required)
-    AzureFirewallSubnet = {
-      cidr = "10.0.0.0/26"
-    }
-
-    # Reserved for future VPN/ExpressRoute gateway
+    # AzureFirewallSubnet, AzureFirewallManagementSubnet and
+    # AzureBastionSubnet are standalone resources below —
+    # Azure requires exact names without any prefix.
     GatewaySubnet = {
-      cidr = "10.0.0.64/27"
+      cidr = "10.0.1.0/27"
     }
-
-    # Shared services subnet (e.g. private DNS resolver, jump boxes)
     shared = {
-      cidr = "10.0.1.0/24"
+      cidr = "10.0.3.0/24"
     }
   }
 
@@ -581,4 +576,97 @@ module "databricks_dev" {
 
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
   tags                       = module.core.tags
+}
+
+
+# ============================================================
+# Hub special subnets — Azure requires exact subnet names
+# The networking module prefixes all names so these must be
+# standalone resources outside the module.
+# ============================================================
+
+resource "azurerm_subnet" "firewall" {
+  name                 = "AzureFirewallSubnet"
+  resource_group_name  = azurerm_resource_group.hub.name
+  virtual_network_name = module.vnet_hub.vnet_name
+  address_prefixes     = ["10.0.0.0/26"]
+}
+
+resource "azurerm_subnet" "firewall_mgmt" {
+  name                 = "AzureFirewallManagementSubnet"
+  resource_group_name  = azurerm_resource_group.hub.name
+  virtual_network_name = module.vnet_hub.vnet_name
+  address_prefixes     = ["10.0.0.64/26"]
+}
+
+resource "azurerm_subnet" "bastion" {
+  name                 = "AzureBastionSubnet"
+  resource_group_name  = azurerm_resource_group.hub.name
+  virtual_network_name = module.vnet_hub.vnet_name
+  address_prefixes     = ["10.0.2.0/26"]
+}
+
+# ============================================================
+# Session A: Azure Firewall Premium + DDoS + Bastion
+# ============================================================
+
+# DDoS Protection Plan (shared across VNets)
+resource "azurerm_network_ddos_protection_plan" "hub" {
+  name                = "ddos-${module.core.name_prefix}-hub"
+  resource_group_name = azurerm_resource_group.hub.name
+  location            = var.location
+  tags                = merge(module.core.tags, { Environment = "shared" })
+}
+
+# Azure Firewall Premium
+module "firewall_hub" {
+  source = "../../modules/firewall"
+
+  name                       = "claims-hub-${module.core.region_short}"
+  resource_group_name        = azurerm_resource_group.hub.name
+  location                   = var.location
+  firewall_subnet_id         = azurerm_subnet.firewall.id
+  management_subnet_id       = azurerm_subnet.firewall_mgmt.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = merge(module.core.tags, { Environment = "shared" })
+}
+
+# Azure Bastion (Standard SKU — enables native client, tunneling)
+module "bastion_hub" {
+  source = "../../modules/bastion"
+
+  name                       = "claims-hub-${module.core.region_short}"
+  resource_group_name        = azurerm_resource_group.hub.name
+  location                   = var.location
+  bastion_subnet_id          = azurerm_subnet.bastion.id
+  sku                        = "Standard"
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = merge(module.core.tags, { Environment = "shared" })
+}
+
+# User Defined Routes — force spoke traffic through firewall
+resource "azurerm_route_table" "dev_to_firewall" {
+  name                          = "rt-${module.core.name_prefix}-to-fw"
+  resource_group_name           = azurerm_resource_group.main.name
+  location                      = var.location
+  bgp_route_propagation_enabled = false
+  tags                          = module.core.tags
+
+  route {
+    name                   = "to-firewall"
+    address_prefix         = "0.0.0.0/0"
+    next_hop_type          = "VirtualAppliance"
+    next_hop_in_ip_address = module.firewall_hub.private_ip
+  }
+}
+
+# Associate route table with AKS and apps subnets
+resource "azurerm_subnet_route_table_association" "aks_to_fw" {
+  subnet_id      = module.vnet_dev.subnet_ids["aks"]
+  route_table_id = azurerm_route_table.dev_to_firewall.id
+}
+
+resource "azurerm_subnet_route_table_association" "apps_to_fw" {
+  subnet_id      = module.vnet_dev.subnet_ids["apps"]
+  route_table_id = azurerm_route_table.dev_to_firewall.id
 }

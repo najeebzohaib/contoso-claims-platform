@@ -97,3 +97,14 @@ output "data_platform" {
     databricks_url    = module.databricks_dev.workspace_url
   }
 }
+
+output "firewall" {
+  value = {
+    private_ip = module.firewall_hub.private_ip
+    public_ip  = module.firewall_hub.public_ip
+  }
+}
+
+output "bastion_name" {
+  value = module.bastion_hub.name
+}
