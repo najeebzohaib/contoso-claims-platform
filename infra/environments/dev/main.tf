@@ -719,3 +719,17 @@ module "dns_apim" {
 
   tags = merge(module.core.tags, { Environment = "shared" })
 }
+
+# ============================================================
+# React Frontend — Azure Static Web App
+# ============================================================
+
+module "swa_dev" {
+  source = "../../modules/static_web_app"
+
+  name                = module.core.name_prefix
+  resource_group_name = azurerm_resource_group.main.name
+  location            = "eastus2"  # SWA has limited region support
+  sku_tier            = "Standard"
+  tags                = module.core.tags
+}

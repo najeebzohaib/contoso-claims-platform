@@ -120,3 +120,10 @@ output "apim" {
     private_ips = module.apim_dev.private_ip_addresses
   }
 }
+
+output "static_web_app" {
+  value = {
+    name      = module.swa_dev.name
+    hostname  = module.swa_dev.default_host_name
+  }
+}
