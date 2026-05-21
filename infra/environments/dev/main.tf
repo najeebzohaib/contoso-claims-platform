@@ -358,3 +358,160 @@ resource "azurerm_federated_identity_credential" "claims_api" {
   issuer              = module.aks_dev.oidc_issuer_url
   subject             = "system:serviceaccount:claims:claims-api"
 }
+
+# ============================================================
+# Session 8: AI Services — OpenAI, Document Intelligence, AI Search
+# ============================================================
+
+# Private DNS zones for AI services
+module "dns_openai" {
+  source = "../../modules/private_dns"
+
+  zone_name           = "privatelink.openai.azure.com"
+  resource_group_name = azurerm_resource_group.hub.name
+
+  vnet_links = {
+    hub = { vnet_id = module.vnet_hub.vnet_id }
+    dev = { vnet_id = module.vnet_dev.vnet_id }
+  }
+
+  tags = merge(module.core.tags, { Environment = "shared" })
+}
+
+module "dns_cognitiveservices" {
+  source = "../../modules/private_dns"
+
+  zone_name           = "privatelink.cognitiveservices.azure.com"
+  resource_group_name = azurerm_resource_group.hub.name
+
+  vnet_links = {
+    hub = { vnet_id = module.vnet_hub.vnet_id }
+    dev = { vnet_id = module.vnet_dev.vnet_id }
+  }
+
+  tags = merge(module.core.tags, { Environment = "shared" })
+}
+
+module "dns_search" {
+  source = "../../modules/private_dns"
+
+  zone_name           = "privatelink.search.windows.net"
+  resource_group_name = azurerm_resource_group.hub.name
+
+  vnet_links = {
+    hub = { vnet_id = module.vnet_hub.vnet_id }
+    dev = { vnet_id = module.vnet_dev.vnet_id }
+  }
+
+  tags = merge(module.core.tags, { Environment = "shared" })
+}
+
+# Azure OpenAI
+module "openai_dev" {
+  source = "../../modules/ai_services"
+
+  name                       = "claims-dev"
+  name_suffix                = var.name_suffix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  kind                       = "OpenAI"
+  sku                        = "S0"
+  public_network_access_enabled = false
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+}
+
+# Private endpoint for OpenAI
+module "pe_openai_dev" {
+  source = "../../modules/private_endpoint"
+
+  name                = "openai-${module.core.name_prefix}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+  subnet_id           = module.vnet_dev.subnet_ids["pe"]
+  target_resource_id  = module.openai_dev.id
+  subresource_names   = ["account"]
+
+  private_dns_zone_ids = [
+    module.dns_openai.zone_id,
+    module.dns_cognitiveservices.zone_id
+  ]
+
+  tags = module.core.tags
+}
+
+# Azure Document Intelligence (Form Recognizer)
+module "docintel_dev" {
+  source = "../../modules/ai_services"
+
+  name                       = "docintel-dev"
+  name_suffix                = var.name_suffix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  kind                       = "FormRecognizer"
+  sku                        = "S0"
+  public_network_access_enabled = false
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+}
+
+# Private endpoint for Document Intelligence
+module "pe_docintel_dev" {
+  source = "../../modules/private_endpoint"
+
+  name                = "docintel-${module.core.name_prefix}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+  subnet_id           = module.vnet_dev.subnet_ids["pe"]
+  target_resource_id  = module.docintel_dev.id
+  subresource_names   = ["account"]
+
+  private_dns_zone_ids = [module.dns_cognitiveservices.zone_id]
+
+  tags = module.core.tags
+}
+
+# Azure AI Search
+module "search_dev" {
+  source = "../../modules/ai_search"
+
+  name                       = "claims-dev"
+  name_suffix                = var.name_suffix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  sku                        = "basic"
+  public_network_access_enabled = false
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+}
+
+# Private endpoint for AI Search
+module "pe_search_dev" {
+  source = "../../modules/private_endpoint"
+
+  name                = "search-${module.core.name_prefix}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+  subnet_id           = module.vnet_dev.subnet_ids["pe"]
+  target_resource_id  = module.search_dev.id
+  subresource_names   = ["searchService"]
+
+  private_dns_zone_ids = [module.dns_search.zone_id]
+
+  tags = module.core.tags
+}
+
+# RBAC: grant claims-api UAMI access to OpenAI and Search
+resource "azurerm_role_assignment" "claims_api_openai" {
+  scope                = module.openai_dev.id
+  role_definition_name = "Cognitive Services OpenAI User"
+  principal_id         = module.id_claims_api.principal_id
+  description          = "Allow claims-api to call Azure OpenAI"
+}
+
+resource "azurerm_role_assignment" "claims_api_search_reader" {
+  scope                = module.search_dev.id
+  role_definition_name = "Search Index Data Reader"
+  principal_id         = module.id_claims_api.principal_id
+  description          = "Allow claims-api to query AI Search index"
+}

@@ -11,3 +11,9 @@ AZU-0065
 AZU-0066
 # AZU-0067: Disk encryption set — CMK for node disks, acceptable to skip for dev
 AZU-0067
+
+# AI Services / Cognitive Services findings
+# AVD-AZU-0020: Cognitive services using managed identity — we DO use managed identity
+#               Trivy may misread this; suppressed to avoid noise
+AVD-AZU-0020
+# Public network access disabled on all AI services; PE is the access path

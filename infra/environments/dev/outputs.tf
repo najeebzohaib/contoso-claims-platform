@@ -79,3 +79,12 @@ output "acr" {
     login_server = module.acr_dev.login_server
   }
 }
+
+output "ai_services" {
+  description = "AI service endpoints"
+  value = {
+    openai_endpoint   = module.openai_dev.endpoint
+    docintel_endpoint = module.docintel_dev.endpoint
+    search_endpoint   = module.search_dev.endpoint
+  }
+}
