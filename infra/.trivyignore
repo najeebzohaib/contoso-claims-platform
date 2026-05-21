@@ -17,3 +17,10 @@ AZU-0067
 #               Trivy may misread this; suppressed to avoid noise
 AVD-AZU-0020
 # Public network access disabled on all AI services; PE is the access path
+
+# Data Lake / Storage findings
+# AVD-AZU-0012: Public network access — acceptable for Data Lake in dev
+#               (production would use private endpoint)
+# AZU-0060: CMK not used — service-managed keys acceptable for dev
+AVD-AZU-0008
+AVD-AZU-0009

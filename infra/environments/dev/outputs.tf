@@ -88,3 +88,12 @@ output "ai_services" {
     search_endpoint   = module.search_dev.endpoint
   }
 }
+
+output "data_platform" {
+  description = "Data platform details"
+  value = {
+    datalake_name     = module.datalake_dev.name
+    datalake_endpoint = module.datalake_dev.primary_dfs_endpoint
+    databricks_url    = module.databricks_dev.workspace_url
+  }
+}

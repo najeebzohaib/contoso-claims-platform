@@ -125,6 +125,14 @@ module "vnet_dev" {
     aks = {
       cidr = "10.10.16.0/20"
     }
+    dbw-public = {
+      cidr = "10.10.32.0/24"
+      delegations = ["Microsoft.Databricks/workspaces"]
+    }
+    dbw-private = {
+      cidr = "10.10.33.0/24"
+      delegations = ["Microsoft.Databricks/workspaces"]
+    }
   }
 
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
@@ -514,4 +522,63 @@ resource "azurerm_role_assignment" "claims_api_search_reader" {
   role_definition_name = "Search Index Data Reader"
   principal_id         = module.id_claims_api.principal_id
   description          = "Allow claims-api to query AI Search index"
+}
+
+# ============================================================
+# Session 9: Data Platform — Data Lake Gen2 + Databricks
+# ============================================================
+
+# Private DNS for Databricks
+module "dns_databricks" {
+  source = "../../modules/private_dns"
+
+  zone_name           = "privatelink.azuredatabricks.net"
+  resource_group_name = azurerm_resource_group.hub.name
+
+  vnet_links = {
+    hub = { vnet_id = module.vnet_hub.vnet_id }
+    dev = { vnet_id = module.vnet_dev.vnet_id }
+  }
+
+  tags = merge(module.core.tags, { Environment = "shared" })
+}
+
+# Data Lake Gen2 with medallion containers
+module "datalake_dev" {
+  source = "../../modules/data_lake"
+
+  name_prefix_compact        = module.core.name_prefix_compact
+  name_suffix                = var.name_suffix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  containers                 = ["bronze", "silver", "gold"]
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+}
+
+# Grant claims-api UAMI access to Data Lake
+resource "azurerm_role_assignment" "claims_api_datalake" {
+  scope                = module.datalake_dev.id
+  role_definition_name = "Storage Blob Data Contributor"
+  principal_id         = module.id_claims_api.principal_id
+  description          = "Allow claims-api to write to Data Lake bronze layer"
+}
+
+# Databricks workspace with VNet injection
+module "databricks_dev" {
+  source = "../../modules/databricks"
+
+  name                = module.core.name_prefix
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+  sku                 = "premium"
+
+  virtual_network_id    = module.vnet_dev.vnet_id
+  public_subnet_name    = "snet-${module.core.name_prefix}-dbw-public"
+  private_subnet_name   = "snet-${module.core.name_prefix}-dbw-private"
+  public_subnet_nsg_id  = module.vnet_dev.nsg_ids["dbw-public"]
+  private_subnet_nsg_id = module.vnet_dev.nsg_ids["dbw-private"]
+
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
 }
