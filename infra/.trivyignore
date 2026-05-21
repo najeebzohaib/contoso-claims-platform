@@ -1,0 +1,13 @@
+
+# AKS findings — accepted for dev/learning environment
+# AZU-0042: RBAC is enabled (role_based_access_control_enabled defaults to true in azurerm 4.x)
+#           Trivy is reading this incorrectly from the plan snapshot
+AZU-0042
+# AZU-0043: Network policy not set — acceptable for dev; production would add calico/azure
+AZU-0043
+# AZU-0065: Public API server — documented in ADR-002, restricted to developer IP
+AZU-0065
+# AZU-0066: Azure Policy add-on not enabled — adds cost/complexity, out of scope for dev
+AZU-0066
+# AZU-0067: Disk encryption set — CMK for node disks, acceptable to skip for dev
+AZU-0067

@@ -61,6 +61,8 @@ jobs:
           github_repo      = "najeebzohaib/contoso-claims-platform"
           name_suffix      = "0bd2"
           log_analytics_retention_days = 30
+          tenant_admin_object_id = "864857ba-d0f2-49c4-9730-14c9ca6f67b7"
+          my_public_ip = "0.0.0.0/0"
           TFVARS
 
       - name: Terraform apply

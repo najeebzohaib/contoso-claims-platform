@@ -259,15 +259,102 @@ resource "azurerm_role_assignment" "claims_api_kv_secrets_user" {
   description = "Allow claims-api workload to read secrets from dev Key Vault"
 }
 
-# Grant your own user account "Key Vault Administrator" so you can
-# put secrets into the vault for testing. In production, this
-# would be a PIM-eligible role assignment, not a standing one.
-data "azurerm_client_config" "current_user" {}
 
-resource "azurerm_role_assignment" "current_user_kv_admin" {
+# ------------------------------------------------------------
+# Key Vault Administrator access for the human admin
+# ------------------------------------------------------------
+# Grant Amina (tenant owner) "Key Vault Administrator" via her
+# stable Entra ID object ID. We use the object ID directly rather
+# than UPN because Amina is a guest in this tenant — UPN lookups
+# of guests are unreliable.
+#
+# NOTE: We deliberately do NOT use data.azurerm_client_config.current
+# here — that resolves to whichever identity runs apply, causing
+# role-assignment thrash between local runs (Amina) and CI/CD (CD SP).
+resource "azurerm_role_assignment" "tenant_admin_kv_admin" {
   scope                = module.kv_dev.id
   role_definition_name = "Key Vault Administrator"
-  principal_id         = data.azurerm_client_config.current_user.object_id
+  principal_id         = var.tenant_admin_object_id
 
-  description = "Standing admin access for Amina (acceptable in dev; PIM in prod)"
+  description = "Standing admin access for tenant owner (dev convenience; PIM in prod)"
+}
+
+# ============================================================
+# Session 7: ACR + AKS + Workload Identity federation
+# ============================================================
+
+# Private DNS for ACR
+module "dns_acr" {
+  source = "../../modules/private_dns"
+
+  zone_name           = "privatelink.azurecr.io"
+  resource_group_name = azurerm_resource_group.hub.name
+
+  vnet_links = {
+    hub = { vnet_id = module.vnet_hub.vnet_id }
+    dev = { vnet_id = module.vnet_dev.vnet_id }
+  }
+
+  tags = merge(module.core.tags, { Environment = "shared" })
+}
+
+# Azure Container Registry
+module "acr_dev" {
+  source = "../../modules/acr"
+
+  name_prefix_compact        = module.core.name_prefix_compact
+  name_suffix                = var.name_suffix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+}
+
+# Private endpoint for ACR
+module "pe_acr_dev" {
+  source = "../../modules/private_endpoint"
+
+  name                = "acr-${module.core.name_prefix}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+
+  subnet_id          = module.vnet_dev.subnet_ids["pe"]
+  target_resource_id = module.acr_dev.id
+  subresource_names  = ["registry"]
+
+  private_dns_zone_ids = [module.dns_acr.zone_id]
+  tags                 = module.core.tags
+}
+
+# Your current public IP — restricts kubectl access to your machine only
+# Update if your IP changes
+variable "my_public_ip" {
+  description = "Your current public IP for AKS API server allowlist"
+  type        = string
+  default     = "0.0.0.0/0" # override in tfvars
+}
+
+# AKS cluster
+module "aks_dev" {
+  source = "../../modules/aks"
+
+  name                       = module.core.name_prefix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  aks_subnet_id              = module.vnet_dev.subnet_ids["aks"]
+  acr_id                     = module.acr_dev.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  authorized_ip_ranges       = [var.my_public_ip]
+  tags                       = module.core.tags
+}
+
+# Workload Identity: federate the claims-api UAMI with AKS OIDC issuer
+# This is what lets a pod authenticate to Key Vault without any secret
+resource "azurerm_federated_identity_credential" "claims_api" {
+  name                = "claims-api-aks-dev"
+  resource_group_name = azurerm_resource_group.main.name
+  parent_id           = module.id_claims_api.id
+  audience            = ["api://AzureADTokenExchange"]
+  issuer              = module.aks_dev.oidc_issuer_url
+  subject             = "system:serviceaccount:claims:claims-api"
 }

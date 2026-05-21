@@ -60,3 +60,22 @@ output "kv_private_endpoint_ip" {
   description = "Private IP of the Key Vault private endpoint"
   value       = module.pe_kv_dev.private_ip_address
 }
+
+output "aks" {
+  description = "AKS cluster details"
+  value = {
+    id              = module.aks_dev.id
+    name            = module.aks_dev.name
+    oidc_issuer_url = module.aks_dev.oidc_issuer_url
+    node_rg         = module.aks_dev.node_resource_group
+  }
+}
+
+output "acr" {
+  description = "ACR details"
+  value = {
+    id           = module.acr_dev.id
+    name         = module.acr_dev.name
+    login_server = module.acr_dev.login_server
+  }
+}

@@ -4,5 +4,7 @@ maintainer_email = "you@example.com"
 github_repo      = "your-org/your-repo"
 
 log_analytics_retention_days = 30
+name_suffix                  = "XXXX"
+tenant_admin_object_id       = "00000000-0000-0000-0000-000000000000"
 
-name_suffix = "XXXX"
+my_public_ip = "1.2.3.4/32"
