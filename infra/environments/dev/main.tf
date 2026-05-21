@@ -120,6 +120,9 @@ module "vnet_dev" {
     aks = {
       cidr = "10.10.16.0/20"
     }
+    apim = {
+      cidr = "10.10.5.0/24"
+    }
     dbw-public = {
       cidr = "10.10.32.0/24"
       delegations = ["Microsoft.Databricks/workspaces"]
@@ -669,4 +672,50 @@ resource "azurerm_subnet_route_table_association" "aks_to_fw" {
 resource "azurerm_subnet_route_table_association" "apps_to_fw" {
   subnet_id      = module.vnet_dev.subnet_ids["apps"]
   route_table_id = azurerm_route_table.dev_to_firewall.id
+}
+
+# ============================================================
+# Session B: Application Gateway (WAF) + APIM
+# ============================================================
+
+# Application Gateway with WAF v2
+module "appgw_dev" {
+  source = "../../modules/app_gateway"
+
+  name                       = module.core.name_prefix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  subnet_id                  = module.vnet_dev.subnet_ids["appgw"]
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+  backend_fqdn               = "placeholder.internal"
+}
+
+# API Management — Internal VNet mode
+module "apim_dev" {
+  source = "../../modules/apim"
+
+  name                       = module.core.name_prefix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  publisher_email            = var.owner_email
+  subnet_id                  = module.vnet_dev.subnet_ids["apim"]
+  sku_name                   = "Developer_1"
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+}
+
+# Private DNS zone for APIM internal mode
+module "dns_apim" {
+  source = "../../modules/private_dns"
+
+  zone_name           = "azure-api.net"
+  resource_group_name = azurerm_resource_group.hub.name
+
+  vnet_links = {
+    hub = { vnet_id = module.vnet_hub.vnet_id }
+    dev = { vnet_id = module.vnet_dev.vnet_id }
+  }
+
+  tags = merge(module.core.tags, { Environment = "shared" })
 }

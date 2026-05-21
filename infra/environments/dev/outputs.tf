@@ -108,3 +108,15 @@ output "firewall" {
 output "bastion_name" {
   value = module.bastion_hub.name
 }
+
+output "appgw_public_ip" {
+  value = module.appgw_dev.public_ip
+}
+
+output "apim" {
+  value = {
+    gateway_url = module.apim_dev.gateway_url
+    portal_url  = module.apim_dev.portal_url
+    private_ips = module.apim_dev.private_ip_addresses
+  }
+}
