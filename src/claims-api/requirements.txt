@@ -1,0 +1,8 @@
+fastapi==0.115.0
+uvicorn==0.30.6
+azure-identity==1.14.1
+azure-search-documents==11.6.0
+openai==1.30.0
+azure-keyvault-secrets==4.8.0
+pydantic==2.9.2
+python-multipart==0.0.12
