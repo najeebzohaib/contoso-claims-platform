@@ -23,3 +23,21 @@ output "data_platform" {
     databricks_url    = module.databricks_prod.workspace_url
   }
 }
+
+output "firewall" {
+  value = {
+    private_ip = module.firewall_hub.private_ip
+    public_ip  = module.firewall_hub.public_ip
+  }
+}
+
+output "appgw_public_ip" {
+  value = module.appgw_prod.public_ip
+}
+
+output "apim" {
+  value = {
+    gateway_url = module.apim_prod.gateway_url
+    private_ips = module.apim_prod.private_ip_addresses
+  }
+}

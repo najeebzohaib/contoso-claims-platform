@@ -51,9 +51,10 @@ module "vnet_hub" {
   address_space       = ["10.1.0.0/16"]
 
   subnets = {
-    AzureFirewallSubnet = { cidr = "10.1.0.0/26" }
-    GatewaySubnet       = { cidr = "10.1.0.64/27" }
-    shared              = { cidr = "10.1.1.0/24" }
+    # AzureFirewallSubnet, AzureFirewallManagementSubnet and
+    # AzureBastionSubnet are standalone resources — exact names required
+    GatewaySubnet = { cidr = "10.1.0.128/27" }
+    shared        = { cidr = "10.1.1.0/24" }
   }
 
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
@@ -82,7 +83,9 @@ module "vnet_prod" {
       private_endpoint_network_policies = "Disabled"
     }
     appgw = { cidr = "10.30.4.0/24" }
+    apim  = { cidr = "10.30.5.0/24" }
     aks   = { cidr = "10.30.16.0/20" }
+    apim  = { cidr = "10.30.5.0/24" }
     dbw-public = {
       cidr        = "10.30.32.0/24"
       delegations = ["Microsoft.Databricks/workspaces"]
@@ -399,4 +402,132 @@ module "databricks_prod" {
   private_subnet_nsg_id      = module.vnet_prod.nsg_ids["dbw-private"]
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
   tags                       = module.core.tags
+}
+
+# ============================================================
+# Hub special subnets — exact names required by Azure
+# ============================================================
+
+resource "azurerm_subnet" "firewall" {
+  name                 = "AzureFirewallSubnet"
+  resource_group_name  = azurerm_resource_group.hub.name
+  virtual_network_name = module.vnet_hub.vnet_name
+  address_prefixes     = ["10.1.0.0/26"]
+}
+
+resource "azurerm_subnet" "firewall_mgmt" {
+  name                 = "AzureFirewallManagementSubnet"
+  resource_group_name  = azurerm_resource_group.hub.name
+  virtual_network_name = module.vnet_hub.vnet_name
+  address_prefixes     = ["10.1.0.64/26"]
+}
+
+resource "azurerm_subnet" "bastion" {
+  name                 = "AzureBastionSubnet"
+  resource_group_name  = azurerm_resource_group.hub.name
+  virtual_network_name = module.vnet_hub.vnet_name
+  address_prefixes     = ["10.1.2.0/26"]
+}
+
+# ============================================================
+# DDoS + Firewall + Bastion
+# ============================================================
+
+# DDoS Protection Plan is shared across environments (1 per subscription per region)
+# Reference the plan created in dev environment
+data "azurerm_network_ddos_protection_plan" "hub" {
+  name                = "ddos-claims-dev-uks-hub"
+  resource_group_name = "rg-claims-hub-uks-001"
+}
+
+module "firewall_hub" {
+  source = "../../modules/firewall"
+
+  name                       = "claims-hub-prod-${module.core.region_short}"
+  resource_group_name        = azurerm_resource_group.hub.name
+  location                   = var.location
+  firewall_subnet_id         = azurerm_subnet.firewall.id
+  management_subnet_id       = azurerm_subnet.firewall_mgmt.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = merge(module.core.tags, { Environment = "shared" })
+}
+
+module "bastion_hub" {
+  source = "../../modules/bastion"
+
+  name                       = "claims-hub-prod-${module.core.region_short}"
+  resource_group_name        = azurerm_resource_group.hub.name
+  location                   = var.location
+  bastion_subnet_id          = azurerm_subnet.bastion.id
+  sku                        = "Standard"
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = merge(module.core.tags, { Environment = "shared" })
+}
+
+resource "azurerm_route_table" "prod_to_firewall" {
+  name                          = "rt-claims-prod-uks-to-fw"
+  resource_group_name           = azurerm_resource_group.main.name
+  location                      = var.location
+  bgp_route_propagation_enabled = false
+  tags                          = module.core.tags
+
+  route {
+    name                   = "to-firewall"
+    address_prefix         = "0.0.0.0/0"
+    next_hop_type          = "VirtualAppliance"
+    next_hop_in_ip_address = module.firewall_hub.private_ip
+  }
+}
+
+resource "azurerm_subnet_route_table_association" "aks_to_fw" {
+  subnet_id      = module.vnet_prod.subnet_ids["aks"]
+  route_table_id = azurerm_route_table.prod_to_firewall.id
+}
+
+resource "azurerm_subnet_route_table_association" "apps_to_fw" {
+  subnet_id      = module.vnet_prod.subnet_ids["apps"]
+  route_table_id = azurerm_route_table.prod_to_firewall.id
+}
+
+# ============================================================
+# App Gateway + APIM
+# ============================================================
+
+module "appgw_prod" {
+  source = "../../modules/app_gateway"
+
+  name                       = module.core.name_prefix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  subnet_id                  = module.vnet_prod.subnet_ids["appgw"]
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+  backend_fqdn               = "10.30.5.4"
+}
+
+module "apim_prod" {
+  source = "../../modules/apim"
+
+  name                       = module.core.name_prefix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  publisher_email            = var.owner_email
+  subnet_id                  = module.vnet_prod.subnet_ids["apim"]
+  sku_name                   = "Developer_1"
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+}
+
+module "dns_apim" {
+  source = "../../modules/private_dns"
+
+  zone_name           = "azure-api.net"
+  resource_group_name = azurerm_resource_group.hub.name
+
+  vnet_links = {
+    hub  = { vnet_id = module.vnet_hub.vnet_id }
+    prod = { vnet_id = module.vnet_prod.vnet_id }
+  }
+
+  tags = merge(module.core.tags, { Environment = "shared" })
 }
