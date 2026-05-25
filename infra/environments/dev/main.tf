@@ -688,7 +688,7 @@ module "appgw_dev" {
   subnet_id                  = module.vnet_dev.subnet_ids["appgw"]
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
   tags                       = module.core.tags
-  backend_fqdn               = "placeholder.internal"
+  backend_fqdn               = "10.10.5.4"
 }
 
 # API Management — Internal VNet mode
