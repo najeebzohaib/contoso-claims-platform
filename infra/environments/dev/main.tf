@@ -733,3 +733,15 @@ module "swa_dev" {
   sku_tier            = "Standard"
   tags                = module.core.tags
 }
+
+# ============================================================
+# Microsoft Sentinel
+# ============================================================
+module "sentinel_dev" {
+  source = "../../modules/sentinel"
+
+  log_analytics_workspace_id   = azurerm_log_analytics_workspace.main.id
+  log_analytics_workspace_name = azurerm_log_analytics_workspace.main.name
+  resource_group_name          = azurerm_resource_group.main.name
+  tags                         = module.core.tags
+}

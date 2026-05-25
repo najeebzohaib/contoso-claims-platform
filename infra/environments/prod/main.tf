@@ -531,3 +531,15 @@ module "dns_apim" {
 
   tags = merge(module.core.tags, { Environment = "shared" })
 }
+
+# ============================================================
+# Microsoft Sentinel
+# ============================================================
+module "sentinel_prod" {
+  source = "../../modules/sentinel"
+
+  log_analytics_workspace_id   = azurerm_log_analytics_workspace.main.id
+  log_analytics_workspace_name = azurerm_log_analytics_workspace.main.name
+  resource_group_name          = azurerm_resource_group.main.name
+  tags                         = module.core.tags
+}
