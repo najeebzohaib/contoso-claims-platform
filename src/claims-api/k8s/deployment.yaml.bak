@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: claims-api
+  namespace: claims
+  labels:
+    app: claims-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: claims-api
+  template:
+    metadata:
+      labels:
+        app: claims-api
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: claims-api
+      containers:
+        - name: claims-api
+          image: acrclaimsdev0bd2.azurecr.io/claims-api:v4
+          ports:
+            - containerPort: 8000
+          env:
+            - name: AZURE_OPENAI_ENDPOINT
+              value: "https://cog-claims-dev-0bd2.openai.azure.com/"
+            - name: AZURE_SEARCH_ENDPOINT
+              value: "https://srch-claims-dev-0bd2.search.windows.net"
+            - name: AZURE_SEARCH_INDEX
+              value: "claims-index"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: claims-api
+  namespace: claims
+spec:
+  selector:
+    app: claims-api
+  ports:
+    - port: 80
+      targetPort: 8000
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: claims-api
+  namespace: claims
+  annotations:
+    azure.workload.identity/client-id: "780d14ad-dc71-40e9-a7fe-72186d7c54d5"
