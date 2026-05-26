@@ -689,6 +689,7 @@ module "appgw_dev" {
   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
   tags                       = module.core.tags
   backend_fqdn               = "10.10.5.4"
+  backend_host_header        = "apim-claims-dev-uks.azure-api.net"
 }
 
 # API Management — Internal VNet mode

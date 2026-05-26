@@ -22,3 +22,9 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "backend_host_header" {
+  type        = string
+  default     = ""
+  description = "Host header to send to backend."
+}

@@ -63,6 +63,7 @@ def health():
     return {"status": "healthy", "version": "1.0.0"}
 
 
+@app.post("/v1/submit", response_model=ClaimResponse)
 @app.post("/claims/v1/submit", response_model=ClaimResponse)
 async def submit_claim(claim: ClaimSubmission):
     claim_id = f"CLM-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}"
@@ -82,6 +83,7 @@ async def submit_claim(claim: ClaimSubmission):
     return record
 
 
+@app.get("/v1/{claim_id}", response_model=ClaimResponse)
 @app.get("/claims/v1/{claim_id}", response_model=ClaimResponse)
 async def get_claim(claim_id: str):
     if claim_id not in claims_store:
@@ -89,11 +91,13 @@ async def get_claim(claim_id: str):
     return claims_store[claim_id]
 
 
+@app.get("/v1")
 @app.get("/claims/v1")
 async def list_claims():
     return {"claims": list(claims_store.values()), "total": len(claims_store)}
 
 
+@app.get("/v1/search")
 @app.get("/claims/v1/search")
 async def search_claims(q: str):
     if not SEARCH_ENDPOINT:
@@ -117,6 +121,7 @@ async def search_claims(q: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/v1/{claim_id}/analyse")
 @app.post("/claims/v1/{claim_id}/analyse")
 async def analyse_claim(claim_id: str):
     if claim_id not in claims_store:

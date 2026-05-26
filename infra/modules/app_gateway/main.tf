@@ -55,11 +55,28 @@ resource "azurerm_application_gateway" "this" {
   }
 
   backend_http_settings {
-    name                  = local.backend_settings
-    cookie_based_affinity = "Disabled"
-    port                  = 80
-    protocol              = "Http"
-    request_timeout       = 60
+    name                                = local.backend_settings
+    cookie_based_affinity               = "Disabled"
+    port                                = 80
+    protocol                            = "Http"
+    request_timeout                     = 60
+    probe_name                          = "probe-apim"
+    host_name                           = var.backend_host_header
+    pick_host_name_from_backend_address = false
+  }
+
+  probe {
+    name                = "probe-apim"
+    protocol            = "Http"
+    path                = "/"
+    host                = var.backend_fqdn
+    interval            = 30
+    timeout             = 30
+    unhealthy_threshold = 3
+
+    match {
+      status_code = ["200-404"]
+    }
   }
 
   http_listener {
