@@ -1,0 +1,9 @@
+version: v0.1
+testName: claims-api-load-test
+testPlanFile: claims-api-test.jmx
+engineInstances: 1
+env:
+  TARGET_HOST: "4.158.34.10"
+failureCriteria:
+  - avg(response_time_ms) > 5000
+  - percentage(error) > 10
