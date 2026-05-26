@@ -30,6 +30,12 @@ spec:
             - name: AZURE_SEARCH_INDEX
               value: "claims-index"
             - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              valueFrom:
+                secretKeyRef:
+                  name: app-insights-secret
+                  key: connection-string
+                  optional: true
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
               value: "$(echo $APPINSIGHTS_CS)"
           resources:
             requests:
