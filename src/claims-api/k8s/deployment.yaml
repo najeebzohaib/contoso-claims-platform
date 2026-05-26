@@ -29,6 +29,8 @@ spec:
               value: "https://srch-claims-dev-0bd2.search.windows.net"
             - name: AZURE_SEARCH_INDEX
               value: "claims-index"
+            - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+              value: "$(echo $APPINSIGHTS_CS)"
           resources:
             requests:
               cpu: 250m

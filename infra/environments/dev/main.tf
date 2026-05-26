@@ -746,3 +746,16 @@ module "sentinel_dev" {
   resource_group_name          = azurerm_resource_group.main.name
   tags                         = module.core.tags
 }
+
+# ============================================================
+# Application Insights
+# ============================================================
+module "app_insights_dev" {
+  source = "../../modules/app_insights"
+
+  name                       = module.core.name_prefix
+  resource_group_name        = azurerm_resource_group.main.name
+  location                   = var.location
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+  tags                       = module.core.tags
+}

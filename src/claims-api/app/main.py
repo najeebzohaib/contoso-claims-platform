@@ -15,6 +15,16 @@ from openai import AzureOpenAI
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# App Insights telemetry
+import os
+APPINSIGHTS_CS = os.getenv("APPLICATIONINSIGHTS_CONNECTION_STRING", "")
+if APPINSIGHTS_CS:
+    from opencensus.ext.azure.log_exporter import AzureLogHandler
+    from opencensus.ext.azure.trace_exporter import AzureExporter
+    from opencensus.trace.samplers import ProbabilitySampler
+    logger.addHandler(AzureLogHandler(connection_string=APPINSIGHTS_CS))
+    logger.info("App Insights telemetry enabled")
+
 app = FastAPI(
     title="Contoso Claims Intelligence API",
     description="AI-powered claims processing API",
