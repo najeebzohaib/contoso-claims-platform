@@ -157,7 +157,7 @@ function AnalysisCard({ result }) {
             {Object.entries(result.keyFacts).filter(([,v]) => v !== null && v !== undefined).map(([k, v]) => (
               <div key={k} style={{ background: colors.grayLight, borderRadius: 6, padding: "8px 12px" }}>
                 <span style={{ fontSize: 11, color: colors.gray, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.4px" }}>{k.replace(/([A-Z])/g, " $1").trim()}</span>
-                <p style={{ margin: "2px 0 0", fontSize: 13, color: colors.dark }}>{String(v)}</p>
+                <p style={{ margin: "2px 0 0", fontSize: 13, color: colors.dark }}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</p>
               </div>
             ))}
           </div>
