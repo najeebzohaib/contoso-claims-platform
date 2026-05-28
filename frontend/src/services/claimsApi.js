@@ -1,4 +1,4 @@
-const APIM_BASE_URL = process.env.REACT_APP_APIM_URL || "https://4.158.34.10";
+const APIM_BASE_URL = process.env.REACT_APP_APIM_URL || "http://4.158.34.10";
 const APIM_KEY = process.env.REACT_APP_APIM_KEY || "";
 
 const headers = () => ({
