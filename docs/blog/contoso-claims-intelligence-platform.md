@@ -437,3 +437,22 @@ The key things it demonstrates for a senior cloud architecture role:
 
 *Stack: Terraform 1.9.8 · Azure UK South · GitHub Actions OIDC · FastAPI · Databricks Delta Lake*
 
+
+---
+
+## Databricks ML Results
+
+After running the fraud detection pipeline on 200 claims:
+
+| Metric | Value |
+|--------|-------|
+| Total claims analysed | 200 |
+| HIGH risk claims | 21 (10.5%) |
+| Total financial exposure | £17,928,654 |
+| Avg ML fraud probability | 10.5% |
+| Best model | GradientBoosting (AUC=1.0 on synthetic data) |
+| Models in registry | 3 (GradientBoosting, RandomForest, LogisticRegression) |
+| Production model | claims-fraud-gradientboosting v2 |
+
+Note: AUC=1.0 reflects synthetic data where features directly encode the label.
+Real-world insurance data would yield AUC 0.75-0.85.
