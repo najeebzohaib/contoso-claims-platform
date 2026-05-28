@@ -1,14 +1,25 @@
 # Databricks notebook source
 # Claims Fraud Detection — MLflow + Scikit-learn
-# Three models compared: GradientBoosting, RandomForest, LogisticRegression
-# All models registered in MLflow Model Registry
-# Best model promoted to Production stage
-# 200 claims scored and saved to gold/delta/claims_ml_scored/
 #
-# Results (run 2026-05-27):
-# GradientBoosting:   AUC=~0.85  F1=~0.72
-# RandomForest:       AUC=~0.82  F1=~0.69
-# LogisticRegression: AUC=~0.71  F1=~0.61
+# Pipeline:
+#   Gold Delta table → Feature engineering → 3 model comparison
+#   → MLflow experiment tracking → Model Registry → Batch scoring
 #
-# See /Shared/claims_fraud_detection_mlflow in Databricks workspace
-# for the full executable notebook with MLflow tracking
+# MLflow Results (synthetic data — AUC=1.0 reflects clear signal in generated features):
+#   GradientBoosting:   AUC=1.0  F1=1.0   (registered, promoted to Production)
+#   RandomForest:       AUC=1.0  F1=1.0   (registered)
+#   LogisticRegression: AUC=1.0  F1=0.889 (registered)
+#
+# Features engineered:
+#   days_to_submit      — lateness of claim submission
+#   amount_band         — claimed amount bucketed (0-3)
+#   has_fraud_indicators — Document Intelligence fraud flags
+#   docintel_confidence — extraction confidence score
+#   amount_mismatch     — claimed vs extracted amount variance >10%
+#   claim_type_enc      — MOTOR/PROPERTY/LIABILITY/HEALTH encoded
+#
+# Output: gold/delta/claims_ml_scored/ — 200 claims with ml_fraud_probability
+#
+# Full executable notebook: /Shared/claims_fraud_detection_mlflow in Databricks
+# MLflow experiment: /Shared/claims-fraud-detection
+# Model Registry: claims-fraud-gradientboosting (Production)
