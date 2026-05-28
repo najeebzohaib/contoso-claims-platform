@@ -614,25 +614,27 @@ resource "azurerm_subnet" "bastion" {
 # ============================================================
 
 # DDoS Protection Plan (shared across VNets)
-resource "azurerm_network_ddos_protection_plan" "hub" {
-  name                = "ddos-${module.core.name_prefix}-hub"
-  resource_group_name = azurerm_resource_group.hub.name
-  location            = var.location
-  tags                = merge(module.core.tags, { Environment = "shared" })
-}
+# REMOVED: DDoS plan deleted to reduce costs
+# resource "azurerm_network_ddos_protection_plan" "hub" {
+#   name                = "ddos-${module.core.name_prefix}-hub"
+#   resource_group_name = azurerm_resource_group.hub.name
+#   location            = var.location
+#   tags                = merge(module.core.tags, { Environment = "shared" })
+# }
 
 # Azure Firewall Premium
-module "firewall_hub" {
-  source = "../../modules/firewall"
-
-  name                       = "claims-hub-${module.core.region_short}"
-  resource_group_name        = azurerm_resource_group.hub.name
-  location                   = var.location
-  firewall_subnet_id         = azurerm_subnet.firewall.id
-  management_subnet_id       = azurerm_subnet.firewall_mgmt.id
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
-  tags                       = merge(module.core.tags, { Environment = "shared" })
-}
+# REMOVED: Firewall deleted to reduce costs
+# module "firewall_hub" {
+#   source = "../../modules/firewall"
+# 
+#   name                       = "claims-hub-${module.core.region_short}"
+#   resource_group_name        = azurerm_resource_group.hub.name
+#   location                   = var.location
+#   firewall_subnet_id         = azurerm_subnet.firewall.id
+#   management_subnet_id       = azurerm_subnet.firewall_mgmt.id
+#   log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+#   tags                       = merge(module.core.tags, { Environment = "shared" })
+# }
 
 # Azure Bastion (Standard SKU — enables native client, tunneling)
 module "bastion_hub" {
@@ -648,31 +650,32 @@ module "bastion_hub" {
 }
 
 # User Defined Routes — force spoke traffic through firewall
-resource "azurerm_route_table" "dev_to_firewall" {
-  name                          = "rt-${module.core.name_prefix}-to-fw"
-  resource_group_name           = azurerm_resource_group.main.name
-  location                      = var.location
-  bgp_route_propagation_enabled = false
-  tags                          = module.core.tags
-
-  route {
-    name                   = "to-firewall"
-    address_prefix         = "0.0.0.0/0"
-    next_hop_type          = "VirtualAppliance"
-    next_hop_in_ip_address = module.firewall_hub.private_ip
-  }
-}
-
-# Associate route table with AKS and apps subnets
-resource "azurerm_subnet_route_table_association" "aks_to_fw" {
-  subnet_id      = module.vnet_dev.subnet_ids["aks"]
-  route_table_id = azurerm_route_table.dev_to_firewall.id
-}
-
-resource "azurerm_subnet_route_table_association" "apps_to_fw" {
-  subnet_id      = module.vnet_dev.subnet_ids["apps"]
-  route_table_id = azurerm_route_table.dev_to_firewall.id
-}
+# REMOVED: Route table removed with firewall
+# resource "azurerm_route_table" "dev_to_firewall" {
+#   name                          = "rt-${module.core.name_prefix}-to-fw"
+#   resource_group_name           = azurerm_resource_group.main.name
+#   location                      = var.location
+#   bgp_route_propagation_enabled = false
+#   tags                          = module.core.tags
+# 
+#   route {
+#     name                   = "to-firewall"
+#     address_prefix         = "0.0.0.0/0"
+#     next_hop_type          = "VirtualAppliance"
+#     next_hop_in_ip_address = module.firewall_hub.private_ip
+#   }
+# }
+# 
+# # Associate route table with AKS and apps subnets
+# resource "azurerm_subnet_route_table_association" "aks_to_fw" {
+#   subnet_id      = module.vnet_dev.subnet_ids["aks"]
+#   route_table_id = azurerm_route_table.dev_to_firewall.id
+# }
+# 
+# resource "azurerm_subnet_route_table_association" "apps_to_fw" {
+#   subnet_id      = module.vnet_dev.subnet_ids["apps"]
+#   route_table_id = azurerm_route_table.dev_to_firewall.id
+# }
 
 # ============================================================
 # Session B: Application Gateway (WAF) + APIM

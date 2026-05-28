@@ -98,12 +98,12 @@ output "data_platform" {
   }
 }
 
-output "firewall" {
-  value = {
-    private_ip = module.firewall_hub.private_ip
-    public_ip  = module.firewall_hub.public_ip
-  }
-}
+# output "firewall" {
+#   value = {
+#     private_ip = module.firewall_hub.private_ip
+#     public_ip  = module.firewall_hub.public_ip
+#   }
+# }
 
 output "bastion_name" {
   value = module.bastion_hub.name
