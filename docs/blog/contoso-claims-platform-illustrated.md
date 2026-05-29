@@ -144,7 +144,9 @@ One plan per subscription region is the Azure limit. The same plan is shared bet
 - Network rules: AzureCloud.uksouth UDP 1194 for AKS tunnelling
 - Default deny: everything not explicitly allowed is blocked
 
-> **Screenshot:** Azure Portal showing `fw-claims-hub-uks` — Premium SKU, private IP 10.0.0.4, threat intelligence in Alert mode, firewall policy `fwpol-claims-hub-uks` attached, 2 network rules and 3 application rules configured.
+> **Screenshot:** Azure Portal showing `fw-claims-hub-uks`
+>
+> ![Azure Firewall Premium — fw-claims-hub-uks](screenshots/Screenshot__14_.png) — Premium SKU, private IP 10.0.0.4, threat intelligence in Alert mode, firewall policy `fwpol-claims-hub-uks` attached, 2 network rules and 3 application rules configured.
 
 📖 [Azure Firewall Premium features](https://learn.microsoft.com/en-us/azure/firewall/premium-features)
 
@@ -163,11 +165,17 @@ One plan per subscription region is the Azure limit. The same plan is shared bet
 - SSL certificate for HTTPS listener on port 443
 - HTTP listener on port 80 for direct API access
 
-> **Screenshot 1:** WAF policy `wafpol-claims-dev-uks` — Enabled, showing Policy settings, Managed rules, Associations, and Custom rules sections.
+> **Screenshot 1:** WAF policy `wafpol-claims-dev-uks`
+>
+> ![WAF Policy — wafpol-claims-dev-uks](screenshots/Screenshot__128_.png) — Enabled, showing Policy settings, Managed rules, Associations, and Custom rules sections.
 
-> **Screenshot 2:** App Gateway health probes — `probe-apim`, HTTP protocol, host 10.10.5.4, path `/`, 30 second timeout.
+> **Screenshot 2:** App Gateway health probes
+>
+> ![App Gateway Health Probes](screenshots/Screenshot__140_.png) — `probe-apim`, HTTP protocol, host 10.10.5.4, path `/`, 30 second timeout.
 
-> **Screenshot 3:** Health probe result — `bepool-apim`, backend address 10.10.5.4, Status **Healthy**, detail "Success. Received 404 status code". A 404 from the APIM root path is the expected response — it confirms APIM is reachable and responding.
+> **Screenshot 3:** Health probe result
+>
+> ![Health Probe Result — Healthy](screenshots/Screenshot__142_.png) — `bepool-apim`, backend address 10.10.5.4, Status **Healthy**, detail "Success. Received 404 status code". A 404 from the APIM root path is the expected response — it confirms APIM is reachable and responding.
 
 **Why is a 404 considered healthy?** APIM returns 404 for requests to the root path `/` because no API is registered there. The health probe only needs to confirm that APIM is alive and responding — any HTTP response confirms this. The probe is configured to accept status codes 200-404.
 
@@ -208,9 +216,13 @@ Internet
   -> Azure OpenAI private endpoint
 ```
 
-> **Screenshot 1:** APIM Overview — `apim-claims-dev-uks`, Status Online, Virtual network Internal, Developer tier (no SLA), 2 APIs configured. Virtual IP addresses show both the public IP used by App Gateway for routing (4.158.236.243) and the private IP (10.10.5.4) that APIM actually listens on.
+> **Screenshot 1:** APIM Overview — `apim-claims-dev-uks`
+>
+> ![APIM Overview](screenshots/Screenshot__23_.png), Status Online, Virtual network Internal, Developer tier (no SLA), 2 APIs configured. Virtual IP addresses show both the public IP used by App Gateway for routing (4.158.236.243) and the private IP (10.10.5.4) that APIM actually listens on.
 
-> **Screenshot 2:** APIM APIs page — Claims Intelligence API with all 5 operations listed: Analyse Claim (POST), Get Claim (GET), Health Check (GET), List Claims (GET), Submit Claim (POST). Backend HTTP endpoint points to `http://10.10.16.6` — the AKS internal load balancer.
+> **Screenshot 2:** APIM APIs page
+>
+> ![APIM APIs — Claims Intelligence API Operations](screenshots/Screenshot__25_.png) — Claims Intelligence API with all 5 operations listed: Analyse Claim (POST), Get Claim (GET), Health Check (GET), List Claims (GET), Submit Claim (POST). Backend HTTP endpoint points to `http://10.10.16.6` — the AKS internal load balancer.
 
 **Key lesson — APIM NSG rules:** APIM Internal VNet mode requires two specific inbound NSG rules:
 - Port 3443 from the `ApiManagement` service tag (management endpoint)
@@ -303,19 +315,33 @@ Private DNS zones in the hub resource group are linked to all VNets. `cog-claims
 | OIDC issuer | Enabled |
 | API server access | Authorised IP ranges |
 
-> **Screenshot 1:** AKS cluster overview — Power state Running, cluster operation Succeeded, Kubernetes 1.34.7, Standard_D4s_v5 nodes, Azure CNI Overlay, authorised IP ranges enabled, container registry linked to `acrclaimsdev0bd2`.
+> **Screenshot 1:** AKS cluster overview — Power state Running
+>
+> ![AKS Cluster Overview](screenshots/Screenshot__26_.png), cluster operation Succeeded, Kubernetes 1.34.7, Standard_D4s_v5 nodes, Azure CNI Overlay, authorised IP ranges enabled, container registry linked to `acrclaimsdev0bd2`.
 
-> **Screenshot 2:** AKS Workloads — `claims-api` deployment 1/1 Ready in `claims` namespace (3 days old), plus all system components healthy: azure-wi-webhook 2/2, coredns 2/2, konnectivity-agent 2/2, metrics-server 2/2, ama-logs-rs 1/1.
+> **Screenshot 2:** AKS Workloads — `claims-api` deployment 1/1 Ready
+>
+> ![AKS Workloads — claims-api Running](screenshots/Screenshot__148_.png) in `claims` namespace (3 days old), plus all system components healthy: azure-wi-webhook 2/2, coredns 2/2, konnectivity-agent 2/2, metrics-server 2/2, ama-logs-rs 1/1.
 
-> **Screenshot 3:** AKS Namespaces — `claims` namespace Active alongside the standard Kubernetes system namespaces.
+> **Screenshot 3:** AKS Namespaces — `claims` namespace Active
+>
+> ![AKS Namespaces](screenshots/Screenshot__28_.png) alongside the standard Kubernetes system namespaces.
 
-> **Screenshot 4:** AKS Services — `claims-api` LoadBalancer type, Cluster IP 172.16.62.187, External IP **10.10.16.6** (Azure Internal Load Balancer — private subnet IP, not public), port 80:32097.
+> **Screenshot 4:** AKS Services — `claims-api` LoadBalancer type
+>
+> ![AKS Services — Internal Load Balancer 10.10.16.6](screenshots/Screenshot__30_.png), Cluster IP 172.16.62.187, External IP **10.10.16.6** (Azure Internal Load Balancer — private subnet IP, not public), port 80:32097.
 
-> **Screenshot 5:** AKS Node Pools — system pool, 2 nodes Running, Succeeded provisioning, Standard_D4s_v5, Ubuntu Linux, manual scale method.
+> **Screenshot 5:** AKS Node Pools — system pool, 2 nodes Running
+>
+> ![AKS Node Pools](screenshots/Screenshot__35_.png), Succeeded provisioning, Standard_D4s_v5, Ubuntu Linux, manual scale method.
 
-> **Screenshot 6:** Claims namespace overview — claims-api 1/1 Ready, 3 days old.
+> **Screenshot 6:** Claims namespace overview
+>
+> ![Claims Namespace Overview](screenshots/Screenshot__147_.png) — claims-api 1/1 Ready, 3 days old.
 
-> **Screenshot 7:** Pod detail — Running status, namespace claims, pod IP 192.168.1.21, controlled by ReplicaSet/claims-api-7bc8dd8c56, container claims-api Running with 0 restarts.
+> **Screenshot 7:** Pod detail — Running status
+>
+> ![Pod Detail — claims-api Running](screenshots/Screenshot__151_.png), namespace claims, pod IP 192.168.1.21, controlled by ReplicaSet/claims-api-7bc8dd8c56, container claims-api Running with 0 restarts.
 
 **The internal load balancer:** The `claims-api` Service uses annotation `service.beta.kubernetes.io/azure-load-balancer-internal: "true"`. This provisions an Azure Internal Load Balancer in the AKS subnet with IP 10.10.16.6. This IP is only reachable from within the VNet — APIM at 10.10.5.4 can reach it, but nothing on the internet can.
 
@@ -340,9 +366,13 @@ Private DNS zones in the hub resource group are linked to all VNets. `cog-claims
 
 **The analysis prompt** instructs GPT-4o to act as an insurance claims analyst and return structured JSON containing keyFacts, riskScore (0-1), riskBand (LOW/MEDIUM/HIGH), fraudIndicators, recommendation (APPROVE/INVESTIGATE/REJECT), and a natural language summary.
 
-> **Screenshot 1:** Terminal curl command showing the complete request and response — HTTP 1.1 200 OK from `http://4.158.34.10/claims/v1/{claimId}/analyse`, MEDIUM risk, INVESTIGATE recommendation, fraud indicators for future incident date and lack of supporting documentation.
+> **Screenshot 1:** Terminal curl command showing the complete request and response
+>
+> ![Terminal — curl GPT-4o API call HTTP 200 OK](screenshots/Screenshot__109_.png) — HTTP 1.1 200 OK from `http://4.158.34.10/claims/v1/{claimId}/analyse`, MEDIUM risk, INVESTIGATE recommendation, fraud indicators for future incident date and lack of supporting documentation.
 
 > **Screenshot 2:** Formatted GPT-4o JSON response for claim CLM-20260528-F697DD0B:
+>
+> ![Terminal — Full GPT-4o JSON Response](screenshots/Screenshot__110_.png)
 > - keyFacts: PROPERTY, 45000 GBP, London, damages including electrical systems and server room, emergencyServicesInvolved: true
 > - riskScore: 0.4, riskBand: MEDIUM
 > - fraudIndicators: suspiciousIncidentDate: true, emergencyServicesEvidenceNeeded: true
@@ -367,11 +397,17 @@ Private DNS zones in the hub resource group are linked to all VNets. `cog-claims
 
 *AI Analysis* — paste a Claim ID to call `POST /claims/v1/{claimId}/analyse`. Displays risk gauge, fraud indicators, and key facts extracted by GPT-4o.
 
-> **Screenshot 1:** Submit form — Policy POL-BOE-2026-001, PROPERTY, 45000 GBP, flood description. Blue header shows "Contoso Claims Intelligence" with Azure stack badges. Security badges in dark blue bar: Azure Firewall Premium, App Gateway WAF, API Management, AKS + Workload Identity, Private Endpoints, Sentinel SIEM.
+> **Screenshot 1:** Submit form — Policy POL-BOE-2026-001
+>
+> ![React UI — Submit Claim Form](screenshots/Screenshot__61_.png), PROPERTY, 45000 GBP, flood description. Blue header shows "Contoso Claims Intelligence" with Azure stack badges. Security badges in dark blue bar: Azure Firewall Premium, App Gateway WAF, API Management, AKS + Workload Identity, Private Endpoints, Sentinel SIEM.
 
-> **Screenshot 2:** Submission result — SUBMITTED card with CLM-20260528-7B52F1AE, Policy POL-BOE-2026-005, PROPERTY, 45,000 GBP, description, submission timestamp.
+> **Screenshot 2:** Submission result — SUBMITTED card with CLM-20260528-7B52F1AE
+>
+> ![React UI — Submitted Claim Card](screenshots/Screenshot__112_.png), Policy POL-BOE-2026-005, PROPERTY, 45,000 GBP, description, submission timestamp.
 
-> **Screenshot 3:** AI Analysis tab — MEDIUM RISK and INVESTIGATE badges in amber, risk score gauge bar at 35%, AI Summary paragraph, FRAUD INDICATORS DETECTED section in red showing "Future incident date provided (2026-05-01)", KEY FACTS EXTRACTED grid with Claim Type, Claim Amount, Incident Date, Incident Description, Location London.
+> **Screenshot 3:** AI Analysis tab — MEDIUM RISK and INVESTIGATE badges in amber
+>
+> ![React UI — GPT-4o AI Analysis Result](screenshots/Screenshot__114_.png), risk score gauge bar at 35%, AI Summary paragraph, FRAUD INDICATORS DETECTED section in red showing "Future incident date provided (2026-05-01)", KEY FACTS EXTRACTED grid with Claim Type, Claim Amount, Incident Date, Incident Description, Location London.
 
 📖 [Azure Static Web Apps documentation](https://learn.microsoft.com/en-us/azure/static-web-apps/overview)
 
@@ -388,11 +424,17 @@ Private DNS zones in the hub resource group are linked to all VNets. `cog-claims
 - Silver applies business rules but never discards records — quality flags are metadata, not filters
 - Gold serves business consumers with optimised, aggregated data
 
-> **Screenshot 1:** Azure Portal — `dbw-claims-dev-uks`, Active, Premium tier (RBAC), UK South, Managed Resource Group linked.
+> **Screenshot 1:** Azure Portal — `dbw-claims-dev-uks`, Active
+>
+> ![Databricks Overview — dbw-claims-dev-uks](screenshots/Screenshot__42_.png), Premium tier (RBAC), UK South, Managed Resource Group linked.
 
-> **Screenshot 2:** Databricks Workspace Shared folder showing all 6 notebooks: claims-fraud-detection (experiment), claims_fraud_detection_mlflow, claims_intelligence_dashboard, claims_medallion_pipeline, claims_medallion_v2, claims_structured_streaming.
+> **Screenshot 2:** Databricks Workspace Shared folder showing all 6 notebooks
+>
+> ![Databricks Workspace — Shared Notebooks](screenshots/Screenshot__98_.png): claims-fraud-detection (experiment), claims_fraud_detection_mlflow, claims_intelligence_dashboard, claims_medallion_pipeline, claims_medallion_v2, claims_structured_streaming.
 
-> **Screenshot 3:** `claims_medallion_v2` notebook — title "Contoso Claims Intelligence Platform — Medallion Pipeline: Bronze to Silver to Gold", showing ADLS Gen2 configuration with storage account and container definitions.
+> **Screenshot 3:** `claims_medallion_v2` notebook — title
+>
+> ![claims_medallion_v2 Notebook](screenshots/Screenshot__54_.png) "Contoso Claims Intelligence Platform — Medallion Pipeline: Bronze to Silver to Gold", showing ADLS Gen2 configuration with storage account and container definitions.
 
 ### Bronze Layer
 
@@ -422,7 +464,9 @@ Records never deleted — DQ flags flow forward as metadata.
 
 `claims_summary` — aggregated by claim type and status.
 
-> **Screenshot 4:** Databricks Compute page — `claims-pipeline-v2` Running (green dot), 48GB memory, 12 cores, 3 DBU/h, Runtime 15.4 LTS (Apache Spark 3.5.0, Scala 2.12), Standard_D4s_v5 workers.
+> **Screenshot 4:** Databricks Compute page — `claims-pipeline-v2` Running
+>
+> ![Databricks Compute — claims-pipeline-v2 Running](screenshots/Screenshot__70_.png) (green dot), 48GB memory, 12 cores, 3 DBU/h, Runtime 15.4 LTS (Apache Spark 3.5.0, Scala 2.12), Standard_D4s_v5 workers.
 
 📖 [Databricks medallion architecture](https://www.databricks.com/glossary/medallion-architecture)
 📖 [Delta Lake documentation](https://docs.delta.io/latest/index.html)
@@ -449,36 +493,68 @@ Records never deleted — DQ flags flow forward as metadata.
 Every run logs parameters, metrics (AUC, F1, precision, recall, cv_auc_mean), and the model artifact with input/output signature.
 
 > **Screenshot 1:** Databricks Experiments — `claims-fraud-detection` experiment listed.
+>
+> ![MLflow Experiments List](screenshots/Screenshot__76_.png)
 
-> **Screenshot 2:** `claims_fraud_detection_mlflow` notebook open — title "Claims Fraud Detection — MLflow + Scikit-learn", subtitle "Feature Engineering to Model Training to Experiment Tracking to Model Registry".
+> **Screenshot 2:** `claims_fraud_detection_mlflow` notebook open
+>
+> ![claims_fraud_detection_mlflow Notebook](screenshots/Screenshot__64_.png) — title "Claims Fraud Detection — MLflow + Scikit-learn", subtitle "Feature Engineering to Model Training to Experiment Tracking to Model Registry".
 
-> **Screenshot 3:** MLflow experiment runs list — 6 runs (2 sets of 3 models), all green Succeeded, durations 11-17 seconds, model links registered.
+> **Screenshot 3:** MLflow experiment runs list — 6 runs
+>
+> ![MLflow Experiment Runs — 6 Runs All Succeeded](screenshots/Screenshot__77_.png) (2 sets of 3 models), all green Succeeded, durations 11-17 seconds, model links registered.
 
-> **Screenshot 4:** MLflow runs with metrics columns showing cv_auc_mean, f1, precision, recall. GradientBoosting and RandomForest: all 1.0. LogisticRegression: f1=0.889, precision=0.8.
+> **Screenshot 4:** MLflow runs with metrics columns
+>
+> ![MLflow Runs with Metrics Columns](screenshots/Screenshot__94_.png) showing cv_auc_mean, f1, precision, recall. GradientBoosting and RandomForest: all 1.0. LogisticRegression: f1=0.889, precision=0.8.
 
-> **Screenshot 5:** MLflow chart view — bar charts comparing all 6 runs across metrics simultaneously, colour-coded by model.
+> **Screenshot 5:** MLflow chart view — bar charts comparing all 6 runs
+>
+> ![MLflow Experiment Chart View](screenshots/Screenshot__95_.png) across metrics simultaneously, colour-coded by model.
 
-> **Screenshot 6:** Parallel Coordinates Plot comparing 3 runs on cv_auc_mean — visual parameter comparison.
+> **Screenshot 6:** Parallel Coordinates Plot comparing 3 runs
+>
+> ![MLflow Parallel Coordinates Plot](screenshots/Screenshot__78_.png) on cv_auc_mean — visual parameter comparison.
 
-> **Screenshot 7:** Run comparison — GradientBoosting vs RandomForest vs LogisticRegression side by side with parameters and metrics.
+> **Screenshot 7:** Run comparison — GradientBoosting vs RandomForest vs LogisticRegression side by side
+>
+> ![MLflow Run Comparison Detail](screenshots/Screenshot__79_.png) with parameters and metrics.
 
-> **Screenshot 8:** Metrics comparison table — cv_auc_mean, f1, precision, recall, roc_auc for all 3 models.
+> **Screenshot 8:** Metrics comparison table
+>
+> ![MLflow Metrics Comparison Table](screenshots/Screenshot__80_.png) — cv_auc_mean, f1, precision, recall, roc_auc for all 3 models.
 
-> **Screenshot 9:** GradientBoosting run detail — Status Finished, 13.8 seconds, model registered as `claims-fraud-gradientboosting v2`, 5 metrics, 20 parameters.
+> **Screenshot 9:** GradientBoosting run detail — Status Finished
+>
+> ![GradientBoosting Run Detail](screenshots/Screenshot__84_.png), 13.8 seconds, model registered as `claims-fraud-gradientboosting v2`, 5 metrics, 20 parameters.
 
-> **Screenshot 10:** GradientBoosting Model Metrics charts — 5 bar charts all showing 1.00 for cv_auc_mean, f1, precision, recall, roc_auc.
+> **Screenshot 10:** GradientBoosting Model Metrics charts
+>
+> ![GradientBoosting Model Metrics Charts](screenshots/Screenshot__86_.png) — 5 bar charts all showing 1.00 for cv_auc_mean, f1, precision, recall, roc_auc.
 
-> **Screenshot 11:** MLflow Registered Models — 3 models in Workspace Model Registry: claims-fraud-gradientboosting, claims-fraud-logisticregression, claims-fraud-randomforest, all Version 2.
+> **Screenshot 11:** MLflow Registered Models — 3 models
+>
+> ![MLflow Model Registry — 3 Registered Models](screenshots/Screenshot__87_.png) in Workspace Model Registry: claims-fraud-gradientboosting, claims-fraud-logisticregression, claims-fraud-randomforest, all Version 2.
 
-> **Screenshot 12:** GradientBoosting model versions — Version 2 and Version 1 both registered and active.
+> **Screenshot 12:** GradientBoosting model versions
+>
+> ![GradientBoosting Model Versions](screenshots/Screenshot__88_.png) — Version 2 and Version 1 both registered and active.
 
-> **Screenshot 13:** Model stage transition menu — Staging, Production, Archived options visible.
+> **Screenshot 13:** Model stage transition menu
+>
+> ![Model Stage Transition Menu](screenshots/Screenshot__89_.png) — Staging, Production, Archived options visible.
 
-> **Screenshot 14:** Model promoted to Production — activity log showing "applied a stage transition None to Production" just seconds ago.
+> **Screenshot 14:** Model promoted to Production
+>
+> ![Model Promoted to Production](screenshots/Screenshot__91_.png) — activity log showing "applied a stage transition None to Production" just seconds ago.
 
-> **Screenshot 15:** Databricks Job Runs — `claims-fraud-detection` Running live, `medallion-stats` Succeeded, `medallion-run-4` Succeeded.
+> **Screenshot 15:** Databricks Job Runs — `claims-fraud-detection` Running live
+>
+> ![Databricks Job Runs — Live Execution](screenshots/Screenshot__72_.png), `medallion-stats` Succeeded, `medallion-run-4` Succeeded.
 
-> **Screenshot 16:** Live notebook run — fraud-detection-mlflow-v2 executing, Status Running, 22 seconds elapsed, cluster `claims-pipeline-v2` running.
+> **Screenshot 16:** Live notebook run — fraud-detection-mlflow-v2 executing
+>
+> ![Live MLflow Run Executing](screenshots/Screenshot__73_.png), Status Running, 22 seconds elapsed, cluster `claims-pipeline-v2` running.
 
 **Note on AUC = 1.0:** The models achieve perfect AUC because `has_fraud_indicators` is directly derived from the same logic that sets `risk_band = HIGH`. In production insurance fraud detection you would expect AUC 0.75-0.85. The pipeline architecture, experiment tracking, and model registry workflow are production-quality.
 
@@ -490,13 +566,21 @@ Every run logs parameters, metrics (AUC, F1, precision, recall, cv_auc_mean), an
 
 **What it is:** A Databricks notebook producing three visualisations from the Gold Delta tables: risk distribution, financial exposure by risk band, and a rule-based vs ML comparison heatmap.
 
-> **Screenshot 1:** Risk Band Distribution pie chart (HIGH 10.5%, MEDIUM 21.0%, LOW 68.5%), Risk by Claim Type bar chart across HEALTH/LIABILITY/MOTOR/PROPERTY, and ML Fraud Probability Distribution histogram with thresholds marked at 0.4 MEDIUM and 0.7 HIGH.
+> **Screenshot 1:** Risk Band Distribution pie chart
+>
+> ![Dashboard — Risk Distribution and ML Fraud Probability](screenshots/Screenshot__101_.png) (HIGH 10.5%, MEDIUM 21.0%, LOW 68.5%), Risk by Claim Type bar chart across HEALTH/LIABILITY/MOTOR/PROPERTY, and ML Fraud Probability Distribution histogram with thresholds marked at 0.4 MEDIUM and 0.7 HIGH.
 
-> **Screenshot 2:** Total Financial Exposure by Risk Band — HIGH 3.6M GBP, LOW 10.5M GBP, MEDIUM 3.8M GBP. Average Claim Value — HIGH 173,029 GBP, LOW 76,455 GBP, MEDIUM 90,971 GBP. High-value claims cluster in the HIGH risk band as expected.
+> **Screenshot 2:** Total Financial Exposure by Risk Band
+>
+> ![Dashboard — Financial Exposure by Risk Band](screenshots/Screenshot__103_.png) — HIGH 3.6M GBP, LOW 10.5M GBP, MEDIUM 3.8M GBP. Average Claim Value — HIGH 173,029 GBP, LOW 76,455 GBP, MEDIUM 90,971 GBP. High-value claims cluster in the HIGH risk band as expected.
 
-> **Screenshot 3:** Rule-based vs ML Risk Classification heatmap — HIGH/HIGH: 21, LOW/LOW: 137, MEDIUM/LOW: 42. Near-diagonal pattern shows the rule-based and ML approaches are substantially aligned.
+> **Screenshot 3:** Rule-based vs ML Risk Classification heatmap
+>
+> ![Dashboard — Rule-Based vs ML Heatmap](screenshots/Screenshot__104_.png) — HIGH/HIGH: 21, LOW/LOW: 137, MEDIUM/LOW: 42. Near-diagonal pattern shows the rule-based and ML approaches are substantially aligned.
 
-> **Screenshot 4:** Key metrics output showing: 200 total claims, 21 HIGH risk (10%), 17,928,654 GBP exposure, 10.5% avg ML fraud probability, GradientBoosting in Production, Delta tables: Bronze/Silver/Gold/ML-Scored.
+> **Screenshot 4:** Key metrics output showing:
+>
+> ![Dashboard — Key Metrics Output](screenshots/Screenshot__105_.png) 200 total claims, 21 HIGH risk (10%), 17,928,654 GBP exposure, 10.5% avg ML fraud probability, GradientBoosting in Production, Delta tables: Bronze/Silver/Gold/ML-Scored.
 
 ---
 
@@ -524,9 +608,13 @@ Every run logs parameters, metrics (AUC, F1, precision, recall, cv_auc_mean), an
 - 3 alert rule sets: Azure Security Center, AAD Identity Protection, Defender ATP
 - 12 Microsoft data connectors connected
 
-> **Screenshot 1:** Microsoft Sentinel Overview — 0 incidents (the platform is secure), 3 active connectors, 4 analytics rules, data received graph showing ingestion activity.
+> **Screenshot 1:** Microsoft Sentinel Overview — 0 incidents
+>
+> ![Microsoft Sentinel Overview](screenshots/Screenshot__106_.png) (the platform is secure), 3 active connectors, 4 analytics rules, data received graph showing ingestion activity.
 
-> **Screenshot 2:** Sentinel Data Connectors — 12 connected including Azure Firewall, Azure Key Vault, Azure Storage Account, Azure WAF, Microsoft Defender for Cloud Apps, Microsoft Defender for Endpoint, Microsoft Defender for Identity.
+> **Screenshot 2:** Sentinel Data Connectors — 12 connected
+>
+> ![Sentinel Data Connectors — 12 Connected](screenshots/Screenshot__108_.png) including Azure Firewall, Azure Key Vault, Azure Storage Account, Azure WAF, Microsoft Defender for Cloud Apps, Microsoft Defender for Endpoint, Microsoft Defender for Identity.
 
 📖 [Microsoft Sentinel documentation](https://learn.microsoft.com/en-us/azure/sentinel/overview)
 📖 [Log Analytics documentation](https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-overview)
@@ -550,12 +638,20 @@ Every run logs parameters, metrics (AUC, F1, precision, recall, cv_auc_mean), an
 | Errors | **0%** | **0%** | **0%** |
 
 > **Screenshot 1:** Azure Load Testing resource `alt-claims-dev-uks` overview.
+>
+> ![Azure Load Testing Resource](screenshots/Screenshot__47_.png)
 
-> **Screenshot 2:** Run 3 WAF Detection results — Completed, 66,970 requests, 0% error rate, 367.97 req/s, 26ms P90, 3 minutes 5 seconds duration, 19 virtual users average.
+> **Screenshot 2:** Run 3 WAF Detection results — Completed
+>
+> ![Load Test Run 3 — 66970 Requests 0% Errors](screenshots/Screenshot__48_.png), 66,970 requests, 0% error rate, 367.97 req/s, 26ms P90, 3 minutes 5 seconds duration, 19 virtual users average.
 
-> **Screenshot 3:** Client-side metrics charts — virtual users reach 20, response time stable around 25ms, requests/sec 365 aggregate flatline, errors: 0 for the entire duration.
+> **Screenshot 3:** Client-side metrics charts — virtual users reach 20
+>
+> ![Load Test Client-Side Metrics](screenshots/Screenshot__49_.png), response time stable around 25ms, requests/sec 365 aggregate flatline, errors: 0 for the entire duration.
 
-> **Screenshot 4:** Engine health — CPU 7.95%, Memory 10.8%, Network 276KB/s, 20 virtual users max.
+> **Screenshot 4:** Engine health — CPU 7.95%
+>
+> ![Load Test Engine Health](screenshots/Screenshot__50_.png), Memory 10.8%, Network 276KB/s, 20 virtual users max.
 
 📖 [Azure Load Testing documentation](https://learn.microsoft.com/en-us/azure/load-testing/)
 
