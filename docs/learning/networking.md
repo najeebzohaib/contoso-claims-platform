@@ -44,6 +44,7 @@ A VNet is a private network in Azure. Think of it like buying a range of IP addr
 | `vnet-claims-dev-uks` | 10.10.0.0/16 | Dev spoke — workloads |
 | `vnet-claims-prod-uks` | 10.30.0.0/16 | Prod spoke — workloads |
 
+
 ### What does /16 mean?
 
 CIDR notation `/16` means the first 16 bits of the address are fixed, and the remaining 16 bits are available for hosts. 
@@ -59,6 +60,10 @@ The IP ranges 10.0.0.0/8, 172.16.0.0/12, and 192.168.0.0/16 are defined by RFC19
 ### What a VNet is NOT
 
 A VNet is not a firewall. It does not block traffic by default (within the VNet). It is a container for IP addresses and a boundary for network policies. Isolation comes from NSGs, Firewall, and other controls applied within and around the VNet.
+
+📖 [What is Azure Virtual Network?](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview)
+📖 [Azure Virtual Network concepts and best practices](https://learn.microsoft.com/en-us/azure/virtual-network/concepts-and-best-practices)
+📖 [RFC1918 private address spaces](https://datatracker.ietf.org/doc/html/rfc1918)
 
 ---
 
@@ -89,6 +94,10 @@ Subnets are the scope at which NSG rules are applied. By putting App Gateway in 
 
 Databricks VNet injection requires two subnets — a public subnet (for control plane communication) and a private subnet (for cluster workers). Databricks manages these subnets once they are created; you just provide the ranges.
 
+📖 [Add, change, or delete a subnet](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-manage-subnet)
+📖 [Azure CNI networking in AKS](https://learn.microsoft.com/en-us/azure/aks/configure-azure-cni)
+📖 [Databricks VNet injection](https://learn.microsoft.com/en-us/azure/databricks/security/network/classic/vnet-inject)
+
 ---
 
 ## Part 4 — VNet Peering
@@ -111,6 +120,10 @@ Dev and prod are NOT peered to each other. They only connect through the hub. Th
 `allow_gateway_transit` / `use_remote_gateways` — allows a VPN or ExpressRoute gateway in the hub to be used by the spokes. You reserved the GatewaySubnet for this even though you haven't deployed the gateway yet.
 
 **Peering is not transitive.** Dev and prod cannot talk to each other via the hub unless the hub explicitly routes traffic between them. This is a security property — the hub is a chokepoint, not a pass-through.
+
+📖 [Virtual network peering](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-peering-overview)
+📖 [Hub-spoke network topology in Azure](https://learn.microsoft.com/en-us/azure/architecture/networking/architecture/hub-spoke)
+📖 [Gateway transit for VNet peering](https://learn.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-peering-gateway-transit)
 
 ---
 
@@ -153,6 +166,12 @@ APIM in Internal VNet mode requires the management endpoint (port 3443) to be re
 
 NSGs are free and fast. Azure Firewall costs ~£1,000/month. Use NSGs for basic subnet isolation and Firewall for centralised inspection of regulated workloads.
 
+📖 [Network security groups overview](https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview)
+📖 [Azure service tags](https://learn.microsoft.com/en-us/azure/virtual-network/service-tags-overview)
+📖 [Application Gateway NSG requirements](https://learn.microsoft.com/en-us/azure/application-gateway/configuration-infrastructure#network-security-groups)
+📖 [APIM VNet integration NSG requirements](https://learn.microsoft.com/en-us/azure/api-management/virtual-network-reference)
+📖 [NSG flow logs](https://learn.microsoft.com/en-us/azure/network-watcher/nsg-flow-logs-overview)
+
 ---
 
 ## Part 6 — User Defined Routes (UDRs)
@@ -187,6 +206,10 @@ AKS pod makes API call
   -> If no: firewall drops packet and logs the attempt
 ```
 
+📖 [Virtual network traffic routing (UDRs)](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-udr-overview)
+📖 [Azure Firewall forced tunnelling](https://learn.microsoft.com/en-us/azure/firewall/forced-tunneling)
+📖 [Route network traffic with a route table](https://learn.microsoft.com/en-us/azure/virtual-network/tutorial-create-route-table-portal)
+
 ---
 
 ## Part 7 — Private DNS
@@ -208,6 +231,11 @@ Each zone is linked to your hub and spoke VNets. When a resource inside the VNet
 The result: traffic to Azure OpenAI from your AKS pods travels entirely within the Azure network. It never appears on the internet.
 
 **Why DNS matters for security:** If the DNS zone were not configured correctly, pods would resolve OpenAI to its public IP and traffic would leave Azure's network — even though a private endpoint exists. The private endpoint only works if DNS resolves to the private IP. Both pieces are required.
+
+📖 [Azure Private DNS overview](https://learn.microsoft.com/en-us/azure/dns/private-dns-overview)
+📖 [Azure Private Endpoint DNS configuration](https://learn.microsoft.com/en-us/azure/private-link/private-endpoint-dns)
+📖 [What is Azure Private Link?](https://learn.microsoft.com/en-us/azure/private-link/private-link-overview)
+📖 [Azure DNS private resolver](https://learn.microsoft.com/en-us/azure/dns/dns-private-resolver-overview)
 
 ---
 
@@ -266,6 +294,13 @@ resource "azurerm_virtual_network_peering" "spoke_to_hub" {
 ```
 
 Peering must be created in both directions. Your `vnet_peering` module creates both the hub-to-spoke and spoke-to-hub peerings in a single module call so they cannot get out of sync.
+
+📖 [azurerm_virtual_network Terraform resource](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network)
+📖 [azurerm_subnet Terraform resource](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/subnet)
+📖 [azurerm_network_security_group Terraform resource](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_group)
+📖 [azurerm_virtual_network_peering Terraform resource](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network_peering)
+📖 [azurerm_route_table Terraform resource](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/route_table)
+
 
 ---
 
@@ -331,6 +366,10 @@ On paper (or any tool), draw:
 
 This exercise is the most important one. If you can draw it from memory, you understand it.
 
+📖 [Azure Network Watcher — troubleshoot connectivity](https://learn.microsoft.com/en-us/azure/network-watcher/network-watcher-connectivity-overview)
+📖 [Effective routes in Azure](https://learn.microsoft.com/en-us/azure/virtual-network/diagnose-network-routing-problem)
+📖 [IP flow verify tool](https://learn.microsoft.com/en-us/azure/network-watcher/ip-flow-verify-overview)
+
 ---
 
 ## Exam-Style Questions
@@ -356,6 +395,16 @@ These are the kinds of questions you will see on AZ-104 and AZ-305.
 **Q5.** A private endpoint is created for Azure Key Vault but pods in AKS still connect to the public Key Vault IP. What is missing?
 
 *Answer: The Private DNS Zone for `privatelink.vaultcore.azure.net` is either not created, not linked to the spoke VNet, or does not have an A record for the Key Vault. Without correct DNS resolution, the private endpoint exists but is never used.*
+
+## AZ-305 Exam Alignment
+
+These networking concepts map to the following AZ-305 exam domain:
+**Domain 4: Design Infrastructure Solutions (35-40%)**
+
+📖 [AZ-305 exam skills outline](https://learn.microsoft.com/en-us/credentials/certifications/exams/az-305/)
+📖 [Design network solutions — study guide](https://learn.microsoft.com/en-us/azure/architecture/networking/)
+📖 [Azure networking documentation hub](https://learn.microsoft.com/en-us/azure/networking/)
+📖 [Microsoft Learn — AZ-305 learning path](https://learn.microsoft.com/en-us/training/paths/design-identity-governance-monitor-solutions/)
 
 ---
 
