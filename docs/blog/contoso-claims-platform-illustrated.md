@@ -786,3 +786,71 @@ curl http://localhost:8080/health
 *Source code: github.com/najeebzohaib/contoso-claims-platform*
 
 *Stack: Terraform 1.9.8, Azure UK South, Kubernetes 1.34.7, FastAPI, Databricks 15.4 LTS, MLflow, GitHub Actions OIDC*
+
+---
+
+## Delta Live Tables Pipeline
+
+The medallion pipeline was upgraded to **Delta Live Tables (DLT)** — Databricks' declarative pipeline framework that adds automatic data quality enforcement, pipeline lineage visualisation, and Unity Catalog integration.
+
+### Why DLT over plain notebooks
+
+| Feature | Plain Notebooks | Delta Live Tables |
+|---------|----------------|-------------------|
+| Dependencies | Manual execution order | Automatic — DLT resolves the graph |
+| Data quality | No built-in enforcement | Expectations with pass/fail tracking |
+| Lineage | Not tracked | Visual pipeline graph with row counts |
+| Retries | Manual | Automatic per-table retry |
+| Catalog integration | Manual | Unity Catalog tables automatically |
+
+### The Pipeline Graph
+
+DLT generates a visual lineage graph showing data flow, row counts, and execution time at each stage.
+
+> ![DLT Pipeline Graph — Completed](screenshots/Screenshot186.png)
+> *Completed pipeline run: bronze_claims (200 records) → silver_claims (200 records) → gold_claims_risk (200 records) → gold_claims_summary (12 records). Total duration: 46 seconds.*
+
+> ![Pipeline Running Live](screenshots/Screenshot187.png)
+> *Pipeline executing live — Performance tab showing SQL REFRESH MATERIALIZED VIEW statements for each table.*
+
+### Data Quality Expectations
+
+Each table has declared expectations. Every expectation result is tracked automatically.
+
+> ![bronze_claims — 2 expectations met](screenshots/Screenshot185.png)
+> *bronze_claims: 200 records, 2 expectations met (claim_id_not_null, positive_amount), 0 dropped, 0 failed.*
+
+> ![silver_claims — 3 expectations met](screenshots/Screenshot184.png)
+> *silver_claims: 200 records, 3 expectations met (valid_claim_type, reasonable_amount, policy_present), 0 records dropped.*
+
+> ![gold_claims_risk — 2 expectations met](screenshots/Screenshot183.png)
+> *gold_claims_risk: 200 records, 2 expectations met (valid_risk_score, valid_risk_band).*
+
+### Unity Catalog Integration
+
+DLT tables are registered automatically in Unity Catalog — no manual table creation needed.
+
+> ![Unity Catalog — claims_dlt schema](screenshots/Screenshot179.png)
+> *Unity Catalog showing the claims_dlt schema with all 4 Delta Live Tables: bronze_claims, gold_claims_risk, gold_claims_summary, silver_claims — created Jun 08 2026.*
+
+> ![Unity Catalog — main catalog](screenshots/Screenshot180.png)
+> *Main catalog dbw_claims_dev_uks showing claims_dlt schema alongside default and information_schema.*
+
+### Pipeline List
+
+> ![Jobs and Pipelines list](screenshots/Screenshot181.png)
+> *Jobs & Pipelines showing claims-intelligence-dlt as an ETL Pipeline with run history.*
+
+### Key Results
+
+| Metric | Value |
+|--------|-------|
+| Pipeline type | ETL Pipeline — Delta Live Tables |
+| Tables created | 4 (bronze, silver, gold_risk, gold_summary) |
+| Total duration | 46 seconds |
+| Records processed | 200 claims |
+| Expectations defined | 7 across all tables |
+| Expectations met | 7 of 7 (100%) |
+| Records dropped | 0 |
+| Catalog | Unity Catalog (dbw_claims_dev_uks) |
+| Schema | claims_dlt |
