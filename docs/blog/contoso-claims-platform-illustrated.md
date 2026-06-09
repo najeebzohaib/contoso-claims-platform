@@ -854,3 +854,42 @@ DLT tables are registered automatically in Unity Catalog — no manual table cre
 | Records dropped | 0 |
 | Catalog | Unity Catalog (dbw_claims_dev_uks) |
 | Schema | claims_dlt |
+
+---
+
+## Azure AI Search — Semantic Search
+
+The platform implements **semantic vector search** using Azure AI Search with `text-embedding-ada-002` embeddings. When a claim is submitted, its description is converted to a 1536-dimensional vector and stored in the search index. Queries are also vectorised and matched by cosine similarity — finding semantically related claims even with no keyword overlap.
+
+### Why semantic search matters for insurance
+
+A claims investigator searching for "water damage" should find claims about "water ingress", "burst pipes", and "flooding" — not just claims that literally contain the words "water damage". Keyword search fails here. Vector search succeeds.
+
+### Architecture
+
+
+Claim submitted → FastAPI generates embedding via text-embedding-ada-002 → Vector stored in AI Search index (1536 dimensions, HNSW algorithm)
+User searches "water damage" → Query vectorised by text-embedding-ada-002 → VectorizedQuery sent to AI Search → Cosine similarity finds nearest neighbour vectors → Returns semantically similar claims
+
+### Live Results
+
+> ![Semantic search — water damage finds water ingress](screenshots/Screenshot191.png)
+> *Search for "water damage" returns "Water ingress through roof" and "Storm damage to commercial roof" — neither contains the search terms. Pure semantic similarity via vector embeddings.*
+
+> ![Semantic search — flood](screenshots/Screenshot192.png)
+> *Search for "flood" returns the warehouse flooding claim.*
+
+> ![Semantic search — car crash](screenshots/Screenshot193.png)
+> *Search for "car crash" returns vehicle-related claims via semantic similarity.*
+
+### Key Configuration
+
+| Setting | Value |
+|---------|-------|
+| Search service | `srch-claims-dev-0bd2` (Basic SKU) |
+| Index | `claims-index` |
+| Embedding model | `text-embedding-ada-002` (1536 dimensions) |
+| Algorithm | HNSW (Hierarchical Navigable Small World) |
+| Similarity metric | Cosine |
+| Authentication | Azure AD (Workload Identity — no API keys) |
+| Network | Private endpoint (traffic stays in Azure) |
