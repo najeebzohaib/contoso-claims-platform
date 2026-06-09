@@ -39,6 +39,37 @@ credential = DefaultAzureCredential()
 
 OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT", "")
 SEARCH_ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT", "")
+SEARCH_INDEX = os.getenv("AZURE_SEARCH_INDEX", "claims-index")
+
+# Initialise AI Search client at module level
+search_client = None
+if SEARCH_ENDPOINT:
+    try:
+        from azure.identity import DefaultAzureCredential as _DAC
+        search_client = SearchClient(
+            endpoint=SEARCH_ENDPOINT,
+            index_name=SEARCH_INDEX,
+            credential=_DAC()
+        )
+        logger.info(f"AI Search client initialised: {SEARCH_ENDPOINT}")
+    except Exception as e:
+        logger.error(f"AI Search client init failed: {e}")
+
+def get_embedding(text: str) -> list:
+    """Generate vector embedding using Azure OpenAI."""
+    try:
+        if not openai_client:
+            return []
+        response = openai_client.embeddings.create(
+            model="text-embedding-ada-002",
+            input=text[:2000]
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        logger.error(f"Embedding error: {e}")
+        return []
+
+
 SEARCH_INDEX    = os.getenv("AZURE_SEARCH_INDEX", "claims-index")
 
 
@@ -84,21 +115,28 @@ async def submit_claim(claim: ClaimSubmission):
     }
     claims_store[claim_id] = record
     logger.info(f"Claim submitted: {claim_id}")
+    # Index in AI Search asynchronously (fire and forget)
+    try:
+        if search_client:
+            embedding = get_embedding(record["description"])
+            doc = {
+                "id": claim_id.replace("-", ""),
+                "claimId": claim_id,
+                "policyNumber": record["policyNumber"],
+                "claimType": record["claimType"],
+                "incidentDate": record["incidentDate"],
+                "claimedAmount": float(record["claimedAmount"]),
+                "description": record["description"],
+                "status": record["status"],
+                "submittedAt": record["submittedAt"],
+            }
+            if embedding:
+                doc["descriptionVector"] = embedding
+            search_client.upload_documents(documents=[doc])
+            logger.info(f"Indexed claim {claim_id} in AI Search")
+    except Exception as e:
+        logger.error(f"Search indexing failed: {e}")
     return record
-
-
-@app.get("/v1/{claim_id}", response_model=ClaimResponse)
-@app.get("/claims/v1/{claim_id}", response_model=ClaimResponse)
-async def get_claim(claim_id: str):
-    if claim_id not in claims_store:
-        raise HTTPException(status_code=404, detail="Claim not found")
-    return claims_store[claim_id]
-
-
-@app.get("/v1")
-@app.get("/claims/v1")
-async def list_claims():
-    return {"claims": list(claims_store.values()), "total": len(claims_store)}
 
 
 @app.get("/v1/search")
@@ -113,16 +151,40 @@ async def search_claims(q: str):
         return {"results": results, "count": len(results), "query": q}
 
     try:
-        search_client = SearchClient(
-            endpoint=SEARCH_ENDPOINT,
-            index_name=SEARCH_INDEX,
-            credential=credential,
-        )
-        results = list(search_client.search(search_text=q, top=10))
+        from azure.search.documents.models import VectorizedQuery
+        embedding = get_embedding(q)
+        search_kwargs = {
+            "search_text": q,
+            "top": 10,
+            "select": ["claimId","policyNumber","claimType",
+                       "claimedAmount","description","status","submittedAt"]
+        }
+        if embedding:
+            search_kwargs["vector_queries"] = [VectorizedQuery(
+                vector=embedding,
+                k_nearest_neighbors=10,
+                fields="descriptionVector"
+            )]
+        results = list(search_client.search(**search_kwargs))
         return {"results": results, "count": len(results), "query": q}
     except Exception as e:
         logger.error(f"Search error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+
+@app.get("/v1/{claim_id}", response_model=ClaimResponse)
+@app.get("/claims/v1/{claim_id}", response_model=ClaimResponse)
+async def get_claim(claim_id: str):
+    if claim_id not in claims_store:
+        raise HTTPException(status_code=404, detail="Claim not found")
+    return claims_store[claim_id]
+
+
+@app.get("/v1")
+@app.get("/claims/v1")
+async def list_claims():
+    return {"claims": list(claims_store.values()), "total": len(claims_store)}
 
 
 @app.post("/v1/{claim_id}/analyse")
